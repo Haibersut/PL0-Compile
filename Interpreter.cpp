@@ -62,7 +62,7 @@ void CCompileDlg::Interpret() {
 						break;
 					case 5: /*DIV*/
 						T--; 
-						S[T] = S[T] % S[T + 1]; 
+						S[T] = S[T] / S[T + 1]; 
 						break;
 					case 6: 
 						S[T] = (S[T] % 2 != 0);        

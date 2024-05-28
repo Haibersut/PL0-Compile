@@ -200,22 +200,75 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
 
 void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
     int i, CX1, CX2;
+    SYMBOL op;
     switch (SYM) {
+        case INCREMENT:
+        case DECREMENT:
+            op = SYM;
+            GetSym();
+            if (SYM == IDENT) {
+                i = POSITION(ID, TX);
+                if (i == 0)
+                    Error(11);
+                else if (TABLE[i].KIND != VARIABLE)
+                    Error(12);
+                else {
+                    // 前缀操作
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LIT, 0, 1);
+                    GEN(OPR, 0, (op == INCREMENT) ? 2 : 3);
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                }
+                GetSym();
+            }
+            break;
         case IDENT:
             i = POSITION(ID, TX);
-            if (i == 0) 
+            if (i == 0)
                 Error(11);
-            else
-                if (TABLE[i].KIND != VARIABLE) { /*ASSIGNMENT TO NON-VARIABLE*/
-                    Error(12); i = 0;
-                }
+            else if (TABLE[i].KIND != VARIABLE) {
+                Error(12); i = 0;
+            }
             GetSym();
-            if (SYM == BECOMES) 
+            if (SYM == INCREMENT || SYM == DECREMENT) {
+                op = SYM;
                 GetSym();
-            else Error(13);
-            EXPRESSION(FSYS, LEV, TX);
-            if (i != 0) 
-                GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                if (op == INCREMENT) {
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LIT, 0, 1);
+                    GEN(OPR, 0, 2);  // 加法
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                }
+                else if (op == DECREMENT) {
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LIT, 0, 1);
+                    GEN(OPR, 0, 3);  // 减法
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                }
+            }
+            else if (SYM == BECOMES || SYM == PLUSEQUAL || SYM == MINUSEQUAL || SYM == TIMESEQUAL || SYM == SLASHEQUAL) {
+                op = SYM;
+                GetSym();
+                EXPRESSION(FSYS, LEV, TX);
+                if (i != 0) {
+                    if (op != BECOMES) {
+                        // 先加载变量的旧值
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                        // 执行相应的运算
+                        switch (op) {
+                        case PLUSEQUAL: GEN(OPR, 0, 2); break;
+                        case MINUSEQUAL: GEN(OPR, 0, 3); break;
+                        case TIMESEQUAL: GEN(OPR, 0, 4); break;
+                        case SLASHEQUAL: GEN(OPR, 0, 5); break;
+                        }
+                    }
+                    // 存储结果
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                }
+            }
+            else {
+                Error(13);
+            }
             break;
         case READSYM:
             GetSym();
@@ -346,7 +399,7 @@ void CCompileDlg::ListCode(int CX0) {
         CString mnemonic(MNEMONIC[CODE[i].F]);
         CString line;
         line.Format(_T("%s %s %4d %4d"), s, mnemonic.GetString(), CODE[i].L, CODE[i].A);
-        logger(line, _T(""));
+        logger(line, _T("info"));
 
         fprintf(FOUT, "%3d%5s%4d%4d\n", i, MNEMONIC[CODE[i].F], CODE[i].L, CODE[i].A);
     }
