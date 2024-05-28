@@ -225,4 +225,5 @@ public:
 		S[a] = 1;  S[b] = 1; S[c] = 1; S[d] = 1; S[e] = 1; S[f] = 1;
 		return S;
 	}
+	afx_msg void OnBnClickedButton4();
 };

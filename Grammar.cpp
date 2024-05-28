@@ -275,14 +275,26 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
         case IFSYM:
             GetSym();
             CONDITION(SymSetUnion(SymSetNew(THENSYM, DOSYM), FSYS), LEV, TX);
-            if (SYM == THENSYM) 
+            if (SYM == THENSYM)
                 GetSym();
-            else 
+            else
                 Error(16);
-            CX1 = CX;  
-            GEN(JPC, 0, 0);
-            STATEMENT(FSYS, LEV, TX);  
-            CODE[CX1].A = CX;
+            CX1 = CX;
+            GEN(JPC, 0, 0);  // 生成条件跳转，如果条件为假则跳转到ELSE部分
+            STATEMENT(FSYS, LEV, TX);
+
+            GetSym();  // 处理完THEN部分后立即读取下一个符号
+            CX2 = CX;
+            GEN(JMP, 0, 0);  // 生成无条件跳转，跳过ELSE部分
+            CODE[CX1].A = CX;  // 回填条件跳转的地址到ELSE部分的开始
+            if (SYM == ELSESYM) {
+                GetSym();
+                STATEMENT(FSYS, LEV, TX);
+                CODE[CX2].A = CX;  // 回填无条件跳转的地址到ELSE部分结束后的代码
+            }
+            else {
+                CODE[CX2].A = CX;  // 如果没有ELSE部分，回填到当前代码位置
+            }
             break;
         case BEGINSYM:
             GetSym();

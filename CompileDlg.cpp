@@ -76,6 +76,7 @@ BEGIN_MESSAGE_MAP(CCompileDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON2, &CCompileDlg::OnBnClickedButton2)
 	ON_BN_CLICKED(IDC_BUTTON3, &CCompileDlg::OnBnClickedButton3)
 	ON_MESSAGE(WM_COMPILE_DONE, OnCompileDone)
+	ON_BN_CLICKED(IDC_BUTTON4, &CCompileDlg::OnBnClickedButton4)
 END_MESSAGE_MAP()
 
 LRESULT CCompileDlg::OnCompileDone(WPARAM wParam, LPARAM lParam)
@@ -440,3 +441,22 @@ void CCompileDlg::OnBnClickedButton3()
 		pRichEdit->SetWindowText(_T(""));
 	}
 }
+
+
+void CCompileDlg::OnBnClickedButton4()
+{
+	if (m_pCompileThread != nullptr) {
+		// 尝试终止线程
+		if (TerminateThread(m_pCompileThread->m_hThread, 0)) {
+			AfxMessageBox(_T("线程已被强制终止"));
+		}
+		else {
+			AfxMessageBox(_T("线程终止失败"));
+		}
+		m_pCompileThread = nullptr;
+	}
+	else {
+		AfxMessageBox(_T("没有正在运行的编译线程"));
+	}
+}
+

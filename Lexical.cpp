@@ -77,9 +77,6 @@ void CCompileDlg::GetSym() {
         } while (i <= J);
         if (i - 1 > J) {
             SYM = WSYM[K];
-            char temp[50];
-            sprintf_s(temp, sizeof(temp), "FOUND KEYWORD: %s", ID);
-            logger(CString(temp), _T("success"));
         }
         else {// 设置SYM为标识符
             SYM = IDENT;
@@ -110,12 +107,10 @@ void CCompileDlg::GetSym() {
         GetCh();
         if (CH == '+') {
             SYM = INCREMENT;
-            logger(_T("FOUND INCREMENT OPERATOR"), _T("success"));
             GetCh();
         }
         else if (CH == '=') {
             SYM = PLUSEQUAL;
-            logger(_T("FOUND PLUSEQUAL OPERATOR"), _T("success"));
             GetCh();
         }
         else {
@@ -126,12 +121,10 @@ void CCompileDlg::GetSym() {
         GetCh();
         if (CH == '-') {
             SYM = DECREMENT;
-            logger(_T("FOUND DECREMENT OPERATOR"), _T("success"));
             GetCh();
         }
         else if (CH == '=') {
             SYM = MINUSEQUAL;
-            logger(_T("FOUND MINUSEQUAL OPERATOR"), _T("success"));
             GetCh();
         }
         else {
@@ -142,7 +135,6 @@ void CCompileDlg::GetSym() {
         GetCh();
         if (CH == '=') {
             SYM = TIMESEQUAL;
-            logger(_T("FOUND TIMESEQUAL OPERATOR"), _T("success"));
             GetCh();
         }
         else {
@@ -153,7 +145,6 @@ void CCompileDlg::GetSym() {
         GetCh();
         if (CH == '=') {
             SYM = SLASHEQUAL;
-            logger(_T("FOUND SLASHEQUAL OPERATOR"), _T("success"));
             GetCh();
         }
         else {
@@ -168,7 +159,6 @@ void CCompileDlg::GetSym() {
         }
         else if (CH == '>') {
             SYM = NEQ;
-            logger(_T("FOUND NEQ OPERATOR"), _T("success"));
             GetCh();
         }
         else {
