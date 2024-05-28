@@ -12,41 +12,34 @@
 #endif
 
 void CCompileDlg::GetCh() {
-	if (CC == LL) {
-		if (feof(FIN)) {
-			logger(_T("PROGRAM INCOMPLETE"), _T("error"));
-			fprintf(FOUT, "PROGRAM INCOMPLETE\n");
+    if (CC == LL) {
+        if (feof(FIN)) {
+            logger(_T("PROGRAM INCOMPLETE"), _T("error"));
+            fprintf(FOUT, "PROGRAM INCOMPLETE\n");
             fclose(FIN);
-			fclose(FOUT);
-            CH = EOF;
-            SYM = EOFSYM;
+            fclose(FOUT);
             return;
-		}
-		LL = 0; 
+        }
+        LL = 0;
         CC = 0;
-		CH = ' ';
-		while (!feof(FIN) && CH != 10) {
-			CH = fgetc(FIN);
+        CH = ' ';
+        while (!feof(FIN) && CH != 10) {
+            CH = fgetc(FIN);
             LINE[LL++] = CH;
-			if (CH == EOF) {
-				break;
-			}
-		}
-        if (LL > 0) 
-            LINE[LL - 1] = ' ';
+        }
+
+        LINE[LL - 1] = ' ';
         LINE[LL] = 0;
-		CString s;
-		s.Format(_T("%d"), CX);
-		while (s.GetLength() < 3) s = _T(" ") + s;
-		s = s + _T(" ") + CString(LINE);
-		logger(s, _T("info"));
-		fprintf(FOUT, "%s\n", CStringA(s).GetString());
-	}
-	if (CH == EOF) {
-		SYM = EOFSYM;
-		return;
-	}
-	CH = LINE[CC++];
+
+        CString s;
+        s.Format(_T("%d"), CX);
+        while (s.GetLength() < 3) s = _T(" ") + s;
+        s = s + _T(" ") + CString(LINE);
+        logger(s, _T("info"));
+        fprintf(FOUT, "%s\n", CStringA(s).GetString());
+    }
+
+    CH = LINE[CC++];
 }
 
 void CCompileDlg::GetSym() {

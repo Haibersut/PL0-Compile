@@ -326,7 +326,7 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             CODE[CX2].A = CX;
             break;
         case EOFSYM:
-            break;
+            return;
     }
     TEST(FSYS, SymSetNULL(), 19);
 }

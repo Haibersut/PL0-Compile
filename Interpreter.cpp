@@ -92,14 +92,17 @@ void CCompileDlg::Interpret() {
 						S[T] = S[T] <= S[T + 1];  
 						break;
 					case 14: 
-						/* 无对应实现
-						Form1->printls("", S[T]); 
-						fprintf(FOUT, "%d\n", S[T]); 
-						T--;
-						*/
-						break;
+						{
+							CString str;
+							str.Format(_T("%d"), S[T]);
+							logger(str, _T("info"));
+							T--;
+							break;
+						}
 					case 15: 
-						/*Form1->printfs(""); fprintf(FOUT,"\n"); */ 
+						{
+							logger(_T(""), _T("info"));
+						}
 						break;
 					case 16: 
 						///* 无对应实现
