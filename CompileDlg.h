@@ -66,9 +66,9 @@ public:
 
 	int ERR; /*ERROR FLAG*/
 	int NUM; /*LAST NUMBER READ*/
-	int CC;  /*CHARACTER COUNT*/
-	int LL;  /*LINE LENGTH*/
-	int CX;  /*CODE ALLOCATION INDEX*/
+	int CC;  // 字符计数
+	int LL;  // 行长度
+	int CX;  // 代码分配索引
 	char CH;  /*LAST CHAR READ*/
 	char LINE[81];
 
@@ -114,22 +114,43 @@ public:
 		"TIMESEQUAL", "SLASHEQUAL",
 	};
 
-	typedef enum { LIT, OPR, LOD, STO, CAL, INI, JMP, JPC } FCT;
+	// 定义指令集的枚举类型
+	typedef enum {
+		LIT,  // Literal
+		OPR,  // Operator
+		LOD,  // Load
+		STO,  // Store
+		CAL,  // Call
+		INI,  // Initialize
+		JMP,  // Jump
+		JPC   // Jump Conditional
+	} FCT;
+
+	// 定义指令的结构体
 	typedef struct {
-		FCT F;     /*FUNCTION CODE*/
-		int L; 	   /*0..LEVMAX  LEVEL*/
-		int A;     /*0..AMAX    DISPLACEMENT ADDR*/
+		FCT F;     // 函数代码
+		int L;     // 0..LEVMAX  层级
+		int A;     // 0..AMAX    偏移地址
 	} INSTRUCTION;
+
 	typedef  char ALFA[11];
 	typedef  int* SYMSET; // SET OF SYMBOL;
-	typedef  enum { CONSTANT, VARIABLE, PROCEDUR } OBJECTS;
+	typedef enum {
+		CONSTANT,  // 常量
+		VARIABLE,  // 变量
+		PROCEDUR   // 过程
+	} OBJECTS;     // 对象的种类
 
 	struct {
-		ALFA NAME;
-		OBJECTS KIND;
+		ALFA NAME;  // 名称
+		OBJECTS KIND;  // 对象种类
 		union {
-			int VAL;   /*CONSTANT*/
-			struct { int LEVEL, ADR, SIZE; } vp;  /*VARIABLE,PROCEDUR:*/
+			int VAL;   // 常量的值
+			struct {
+				int LEVEL;  // 变量或过程的层级
+				int ADR;    // 变量或过程的地址
+				int SIZE;   // 变量或过程的大小
+			} vp;  // 变量或过程的信息
 		};
 	} TABLE[TXMAX];
 

@@ -23,12 +23,12 @@ void CCompileDlg::GEN(FCT X, int Y, int Z) {
         logger(_T("PROGRAM TOO LONG"), _T("error"));
         fprintf(FOUT, "PROGRAM TOO LONG\n");
         fclose(FOUT);
-        exit(0);
+        throw std::out_of_range("PROGRAM TOO LONG");
     }
-    CODE[CX].F = X; 
-    CODE[CX].L = Y; 
-    CODE[CX].A = Z;
-    CX++;
+    CODE[CX].F = X;  // 设置函数代码
+    CODE[CX].L = Y;  // 设置层级
+    CODE[CX].A = Z;  // 设置偏移地址
+    CX++;  // 代码索引增加
 }
 
 void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT INTO TABLE*/
@@ -137,16 +137,24 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
     }
 }
 
-void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX) {  /*TERM*/
+// 处理乘法和除法操作
+void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL MULOP;
+
+    // 处理因子
     FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH)), LEV, TX);
+
     while (SYM == TIMES || SYM == SLASH) {
-        MULOP = SYM;  
+        MULOP = SYM;
         GetSym();
+
         FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH)), LEV, TX);
-        if (MULOP == TIMES) 
+
+        // 乘法
+        if (MULOP == TIMES)
             GEN(OPR, 0, 4);
-        else 
+        // 除法
+        else
             GEN(OPR, 0, 5);
     }
 }
@@ -155,8 +163,15 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL ADDOP;
     int i;
 
-    // 处理前缀操作
-    if (SYM == INCREMENT || SYM == DECREMENT) {
+    if (SYM == PLUS || SYM == MINUS) {
+        ADDOP = SYM; 
+        GetSym();
+        TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
+        if (ADDOP == MINUS)
+            GEN(OPR, 0, 1); // NEG
+    }
+    else if (SYM == INCREMENT || SYM == DECREMENT) {
+        // 处理前缀操作
         ADDOP = SYM;
         GetSym();
         if (SYM == IDENT) {
@@ -173,16 +188,16 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
                 if (ADDOP == INCREMENT) {
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     GEN(LIT, 0, 1);
-                    GEN(OPR, 0, 2); // ADD
+                    GEN(OPR, 0, 2);
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR); // Load updated value
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                 }
                 else if (ADDOP == DECREMENT) {
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     GEN(LIT, 0, 1);
-                    GEN(OPR, 0, 3); // SUBTRACT
+                    GEN(OPR, 0, 3);
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR); // Load updated value
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                 }
             }
             GetSym();
@@ -190,14 +205,6 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
         else {
             Error(10);
         }
-    }
-
-    if (SYM == PLUS || SYM == MINUS) {
-        ADDOP = SYM; 
-        GetSym();
-        TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
-        if (ADDOP == MINUS)
-            GEN(OPR, 0, 1); // NEG
     }
     else {
         TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
@@ -214,6 +221,7 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
     }
 }
 
+// 变量声明
 void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX) {
     if (SYM == IDENT) { 
         ENTER(VARIABLE, LEV, TX, DX); 
@@ -223,41 +231,46 @@ void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX) {
         Error(4);
 }
 
+// 测试
 void CCompileDlg::TEST(SYMSET S1, SYMSET S2, int N) {
-	if (!SymIn(SYM, S1)) {
-		Error(N);
-		while (!SymIn(SYM, SymSetUnion(S1, S2))) {
-			GetSym();
-		}
-	}
+    if (!SymIn(SYM, S1)) { // 如果符号不在S1中
+        Error(N);
+        while (!SymIn(SYM, SymSetUnion(S1, S2))) { // 当符号不在S1和S2的并集中时
+            GetSym();
+        }
+    }
 }
 
-int CCompileDlg::POSITION(ALFA ID, int TX) { /*FIND IDENTIFIER IN TABLE*/
+// 在表中查找标识符
+int CCompileDlg::POSITION(ALFA ID, int TX) {
     int i = TX;
     strcpy_s(TABLE[0].NAME, sizeof(TABLE[0].NAME), ID);
-    while (strcmp(TABLE[i].NAME, ID) != 0) i--;
+    while (strcmp(TABLE[i].NAME, ID) != 0) 
+        i--;
     return i;
 }
 
+// 处理条件表达式
 void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL RELOP;
-    if (SYM == ODDSYM) { 
-        GetSym(); 
-        EXPRESSION(FSYS, LEV, TX); 
-        GEN(OPR, 0, 6); 
+    if (SYM == ODDSYM) {
+        GetSym();
+        EXPRESSION(FSYS, LEV, TX);
+        GEN(OPR, 0, 6);
     }
     else {
+        // 处理关系运算符
         EXPRESSION(SymSetUnion(SymSetNew(EQL, NEQ, LSS, LEQ, GTR, GEQ), FSYS), LEV, TX);
         if (!SymIn(SYM, SymSetNew(EQL, NEQ, LSS, LEQ, GTR, GEQ))) Error(20);
         else {
             RELOP = SYM; GetSym(); EXPRESSION(FSYS, LEV, TX);
             switch (RELOP) {
-                case EQL: GEN(OPR, 0, 8);  break;
-                case NEQ: GEN(OPR, 0, 9);  break;
-                case LSS: GEN(OPR, 0, 10); break;
-                case GEQ: GEN(OPR, 0, 11); break;
-                case GTR: GEN(OPR, 0, 12); break;
-                case LEQ: GEN(OPR, 0, 13); break;
+            case EQL: GEN(OPR, 0, 8);  break;  // 等于
+            case NEQ: GEN(OPR, 0, 9);  break;  // 不等于
+            case LSS: GEN(OPR, 0, 10); break;  // 小于
+            case GEQ: GEN(OPR, 0, 11); break;  // 大于等于
+            case GTR: GEN(OPR, 0, 12); break;  // 大于
+            case LEQ: GEN(OPR, 0, 13); break;  // 小于等于
             }
         }
     }
