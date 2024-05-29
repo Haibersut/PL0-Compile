@@ -279,6 +279,9 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
 void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
     int i, CX1, CX2;
     SYMBOL op;
+    SYMBOL preSYM;
+    FILE *preFIN, *preFOUT;
+    int preCC, preLL;
     switch (SYM) {
         case INCREMENT:
         case DECREMENT:
@@ -425,6 +428,12 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             GEN(JPC, 0, 0);  // 生成条件跳转，如果条件为假则跳转到ELSE部分
             STATEMENT(FSYS, LEV, TX);
 
+            preSYM = SYM;
+            preFIN = FIN;
+            preFOUT = FOUT;
+            preCC = CC;
+            preLL = LL;
+
             GetSym();  // 处理完THEN部分后立即读取下一个符号
             CX2 = CX;
             GEN(JMP, 0, 0);  // 生成无条件跳转，跳过ELSE部分
@@ -435,6 +444,11 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                 CODE[CX2].A = CX;  // 回填无条件跳转的地址到ELSE部分结束后的代码
             }
             else {
+                SYM = preSYM;
+                FIN = preFIN;
+                FOUT = preFOUT;
+                CC = preCC;
+                LL = preLL;
                 CODE[CX2].A = CX;  // 如果没有ELSE部分，回填到当前代码位置
             }
             break;

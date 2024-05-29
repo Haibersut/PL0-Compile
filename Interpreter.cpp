@@ -105,38 +105,12 @@ void CCompileDlg::Interpret() {
 						}
 						break;
 					case 16: 
-						///* 无对应实现
-						//T++;  
-						//S[T] = InputBox("Input", "Enter a number:", 0).ToInt();
-						//Form1->printls("? ", S[T]); 
-						//fprintf(FOUT, "? %d\n", S[T]);
-						//*/
-						//// 确保富文本编辑框获得焦点，以便用户可以开始输入
-						//m_RichEdit.SetFocus();
-
-						//// 创建一个消息循环，等待用户按下回车键
-						//MSG msg;
-						//while (::GetMessage(&msg, nullptr, 0, 0))
-						//{
-						//	if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN) // 检测回车键
-						//	{
-						//		// 用户按下了回车键，跳出循环
-						//		break;
-						//	}
-						//	::TranslateMessage(&msg);
-						//	::DispatchMessage(&msg);
-						//}
-
-						//// 获取用户输入的文本
-						//CString strText;
-						//m_RichEdit.GetWindowText(strText);
-
-						//// 将CString转换为int（这里假设用户输入的是数字）
-						//int nInput = _ttoi(strText);
-						//logger(_T("Input: ") + strText, _T("info"));
-						//// 接下来，你可以根据需要使用nInput变量
-						//// 例如：S[T] = nInput;
-
+						T++;  
+						/*S[T] = InputBox("Input", "Enter a number:", 0).ToInt();*/
+						CString message;
+						message.Format(_T("? %d"), S[T]);
+						logger(message, _T("info"));
+						fprintf(FOUT, "? %d\n", S[T]);
 						break;
 				}
 				break;

@@ -82,7 +82,12 @@ END_MESSAGE_MAP()
 LRESULT CCompileDlg::OnCompileDone(WPARAM wParam, LPARAM lParam)
 {
 	m_pCompileThread = nullptr;
-	logger(_T("编译完成"), _T("info"));
+	if (FIN != nullptr) {
+		fclose(FIN);
+	}
+	if (FOUT != nullptr) {
+		fclose(FOUT);
+	}
 	return 0;
 }
 
@@ -253,7 +258,7 @@ UINT CompileThreadProc(LPVOID pParam)
 {
 	CCompileDlg* pDlg = reinterpret_cast<CCompileDlg*>(pParam);
 	if (pDlg != nullptr) {
-		pDlg->CompileCode();  // 将原来的编译代码放在这个方法中
+		pDlg->CompileCode();
 	}
 	pDlg->PostMessage(WM_COMPILE_DONE);
 	return 0;
