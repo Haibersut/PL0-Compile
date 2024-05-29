@@ -496,7 +496,7 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             GEN(JMP, 0, CX1);  // 跳回循环开始
             CODE[CX3].A = CX;  // 回填JPC的跳转地址
 
-            break;
+            break; //6
         case BEGINSYM:
             GetSym();
             STATEMENT(SymSetUnion(SymSetNew(SEMICOLON, ENDSYM), FSYS), LEV, TX);
