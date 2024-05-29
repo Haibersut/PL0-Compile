@@ -442,6 +442,7 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             else {
                 Retreat();
                 CODE[CX1].A = CX;
+                STATEMENT(FSYS, LEV, TX);
             }
             break;
         case BEGINSYM:
