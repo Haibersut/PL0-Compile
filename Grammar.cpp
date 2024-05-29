@@ -74,43 +74,65 @@ void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
 
 void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
     int i;
+
+    // 检查当前符号是否在开始符号集合中
     TEST(FACBEGSYS, FSYS, 24);
+
+    // 如果当前符号在开始符号集合中，进行处理
     while (SymIn(SYM, FACBEGSYS)) {
         if (SYM == IDENT) {
-            i = POSITION(ID, TX);
-            if (i == 0) Error(11);
-            else
+            i = POSITION(ID, TX);  // 查找标识符
+            if (i == 0) 
+                Error(11);
+            else {
+                // 根据标识符的类型进行处理
                 switch (TABLE[i].KIND) {
-                    case CONSTANT: 
-                        GEN(LIT, 0, TABLE[i].VAL); 
-                        break;
-                    case VARIABLE: 
-                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR); 
-                        break;
-                    case PROCEDUR: 
-                        Error(21); 
-                        break;
+                case CONSTANT:  // 常量
+                    GEN(LIT, 0, TABLE[i].VAL);
+                    break;
+                case VARIABLE:  // 变量
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    // 处理后缀操作
+                    GetSym();  
+                    if (SYM == INCREMENT) {
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
+                        GEN(LIT, 0, 1);
+                        GEN(OPR, 0, 2);  // 加法
+                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
+                        GetSym();
+                    }
+                    else if (SYM == DECREMENT) {
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
+                        GEN(LIT, 0, 1);
+                        GEN(OPR, 0, 3);  // 减法
+                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
+                        GetSym();
+                    }
+                    break;
+                case PROCEDUR:  // 过程
+                    Error(21);
+                    break;
                 }
+            }
+        }
+        else if (SYM == NUMBER) {  // 数字
+            if (NUM > AMAX) {  
+                Error(31);
+                NUM = 0;
+            }
+            GEN(LIT, 0, NUM);  // 常量
             GetSym();
         }
-        else
-            if (SYM == NUMBER) {
-                if (NUM > AMAX) { 
-                    Error(31); 
-                    NUM = 0; 
-                }
-                GEN(LIT, 0, NUM); 
+        else if (SYM == LPAREN) {  // 表达式
+            GetSym();
+            // 解析表达式
+            EXPRESSION(SymSetAdd(RPAREN, FSYS), LEV, TX);
+            if (SYM == RPAREN)
                 GetSym();
-            }
             else
-                if (SYM == LPAREN) {
-                    GetSym(); 
-                    EXPRESSION(SymSetAdd(RPAREN, FSYS), LEV, TX);
-                    if (SYM == RPAREN) 
-                        GetSym();
-                    else 
-                        Error(22);
-                }
+                Error(22);
+        }
+
         TEST(FSYS, FACBEGSYS, 23);
     }
 }
@@ -131,20 +153,63 @@ void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX) {  /*TERM*/
 
 void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL ADDOP;
-    if (SYM == PLUS || SYM == MINUS) {
-        ADDOP = SYM; GetSym();
-        TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
-        if (ADDOP == MINUS) 
-            GEN(OPR, 0, 1);
+    int i;
+
+    // 处理前缀操作
+    if (SYM == INCREMENT || SYM == DECREMENT) {
+        ADDOP = SYM;
+        GetSym();
+        if (SYM == IDENT) {
+            i = POSITION(ID, TX);
+            if (i == 0) {
+                Error(11);
+            }
+            else if (TABLE[i].KIND != VARIABLE) {
+                Error(12);
+                i = 0;
+            }
+            else {
+                // 执行自增或自减，并载入修改后的值
+                if (ADDOP == INCREMENT) {
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LIT, 0, 1);
+                    GEN(OPR, 0, 2); // ADD
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR); // Load updated value
+                }
+                else if (ADDOP == DECREMENT) {
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LIT, 0, 1);
+                    GEN(OPR, 0, 3); // SUBTRACT
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR); // Load updated value
+                }
+            }
+            GetSym();
+        }
+        else {
+            Error(10);
+        }
     }
-    else 
+
+    if (SYM == PLUS || SYM == MINUS) {
+        ADDOP = SYM; 
+        GetSym();
         TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
+        if (ADDOP == MINUS)
+            GEN(OPR, 0, 1); // NEG
+    }
+    else {
+        TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
+    }
+       
     while (SYM == PLUS || SYM == MINUS) {
-        ADDOP = SYM; GetSym();
+        ADDOP = SYM; 
+        GetSym();
         TERM(SymSetUnion(FSYS, SymSetNew(PLUS, MINUS)), LEV, TX);
-        if (ADDOP == PLUS) 
+        if (ADDOP == PLUS)
             GEN(OPR, 0, 2);
-        else 
+        else
             GEN(OPR, 0, 3);
     }
 }
@@ -210,14 +275,23 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                 i = POSITION(ID, TX);
                 if (i == 0)
                     Error(11);
-                else if (TABLE[i].KIND != VARIABLE)
-                    Error(12);
+                else if (TABLE[i].KIND != VARIABLE) {
+                    Error(12); 
+                    i = 0;
+                }
                 else {
-                    // 前缀操作
-                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    GEN(LIT, 0, 1);
-                    GEN(OPR, 0, (op == INCREMENT) ? 2 : 3);
-                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    if (op == INCREMENT) {
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                        GEN(LIT, 0, 1);
+                        GEN(OPR, 0, 2);  // 加法
+                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    }
+                    else if (op == DECREMENT) {
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                        GEN(LIT, 0, 1);
+                        GEN(OPR, 0, 3);  // 减法
+                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                    }
                 }
                 GetSym();
             }
@@ -227,9 +301,11 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             if (i == 0)
                 Error(11);
             else if (TABLE[i].KIND != VARIABLE) {
-                Error(12); i = 0;
+                Error(12); 
+                i = 0;
             }
             GetSym();
+            // 后缀操作
             if (SYM == INCREMENT || SYM == DECREMENT) {
                 op = SYM;
                 GetSym();
@@ -256,10 +332,10 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                         GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                         // 执行相应的运算
                         switch (op) {
-                        case PLUSEQUAL: GEN(OPR, 0, 2); break;
-                        case MINUSEQUAL: GEN(OPR, 0, 3); break;
-                        case TIMESEQUAL: GEN(OPR, 0, 4); break;
-                        case SLASHEQUAL: GEN(OPR, 0, 5); break;
+                            case PLUSEQUAL: GEN(OPR, 0, 2); break;
+                            case MINUSEQUAL: GEN(OPR, 0, 3); break;
+                            case TIMESEQUAL: GEN(OPR, 0, 4); break;
+                            case SLASHEQUAL: GEN(OPR, 0, 5); break;
                         }
                     }
                     // 存储结果
