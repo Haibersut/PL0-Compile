@@ -277,7 +277,7 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
 }
 
 void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
-    int i, CX1, CX2;
+    int i, CX1, CX2, CX3, CX4;
     SYMBOL op;
 
     switch (SYM) {
@@ -444,6 +444,58 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                 CODE[CX1].A = CX;
                 STATEMENT(FSYS, LEV, TX);
             }
+            break;
+        case FORSYM:
+            GetSym();
+            if (SYM != IDENT)
+                Error(4);  // 应该是变量名
+            i = POSITION(ID, TX);
+            if (i == 0)
+                Error(11);  // 未声明的标识符
+            if (TABLE[i].KIND != VARIABLE)
+                Error(12);  // 不是变量
+            GetSym();
+            if (SYM != BECOMES)
+                Error(13);  // 缺少赋值符号
+            GetSym();
+            EXPRESSION(SymSetUnion(FSYS, SymSetNew(STEPSYM, UNTILSYM, DOSYM)), LEV, TX);
+            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 初始值赋给变量
+
+            CX1 = CX;  // 记录循环开始位置
+            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
+
+            if (SYM != STEPSYM)
+                Error(24);  // 缺少STEP
+            GetSym();
+            EXPRESSION(SymSetUnion(FSYS, SymSetNew(UNTILSYM, DOSYM)), LEV, TX);
+            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 1);  // 保存步长
+
+            if (SYM != UNTILSYM)
+                Error(25);  // 缺少UNTIL
+            GetSym();
+            EXPRESSION(SymSetUnion(FSYS, SymSetNew(DOSYM)), LEV, TX);
+            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 保存终止条件
+
+            CX2 = CX;  // 准备跳转的地方
+            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
+            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 加载终止条件
+            GEN(OPR, 0, 13);  // OPR 0,13 <= 比较变量和终止条件
+            CX3 = CX;
+            GEN(JPC, 0, 0);  // 处理终止条件
+
+            if (SYM != DOSYM)
+                Error(26);  // 缺少DO
+            GetSym();
+            STATEMENT(FSYS, LEV, TX);
+
+            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
+            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 1);  // 加载步长
+            GEN(OPR, 0, 2);  // OPR 0,2 + 变量 + 步长
+            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 保存变量
+
+            GEN(JMP, 0, CX1);  // 跳回循环开始
+            CODE[CX3].A = CX;  // 回填JPC的跳转地址
+
             break;
         case BEGINSYM:
             GetSym();
