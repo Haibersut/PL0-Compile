@@ -72,6 +72,14 @@ public:
 	char CH;  /*LAST CHAR READ*/
 	char LINE[81];
 
+	int prevCC;  // 上一个字符的位置记录
+	bool needRetreat = false;  // 是否需要回退的标志
+
+	void CCompileDlg::Retreat() {
+		// 设置回退标志
+		needRetreat = true;
+	}
+
 	typedef enum {
 		// 特殊符号
 		NUL, IDENT, NUMBER,

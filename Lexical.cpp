@@ -12,6 +12,14 @@
 #endif
 
 void CCompileDlg::GetCh() {
+    if (needRetreat) {
+        CC = prevCC;
+        needRetreat = false;
+        return;
+    }
+
+    prevCC = CC;  // 记录当前字符位置以便可能的回退
+
     if (CC == LL) {
         if (feof(FIN)) {
             logger(_T("PROGRAM INCOMPLETE"), _T("error"));

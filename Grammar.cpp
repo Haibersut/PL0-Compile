@@ -279,9 +279,7 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
 void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
     int i, CX1, CX2;
     SYMBOL op;
-    SYMBOL preSYM;
-    FILE *preFIN, *preFOUT;
-    int preCC, preLL;
+
     switch (SYM) {
         case INCREMENT:
         case DECREMENT:
@@ -423,33 +421,27 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             if (SYM == THENSYM)
                 GetSym();
             else
-                Error(16);
+                Error(16);  // “then” expected
+
             CX1 = CX;
-            GEN(JPC, 0, 0);  // 生成条件跳转，如果条件为假则跳转到ELSE部分
+            GEN(JPC, 0, 0);
             STATEMENT(FSYS, LEV, TX);
 
-            preSYM = SYM;
-            preFIN = FIN;
-            preFOUT = FOUT;
-            preCC = CC;
-            preLL = LL;
+            GetSym();  // 尝试读取下一个符号
 
-            GetSym();  // 处理完THEN部分后立即读取下一个符号
-            CX2 = CX;
-            GEN(JMP, 0, 0);  // 生成无条件跳转，跳过ELSE部分
-            CODE[CX1].A = CX;  // 回填条件跳转的地址到ELSE部分的开始
             if (SYM == ELSESYM) {
+                // 处理ELSE部分
+                CODE[CX1].A = CX + 1;  // 更新JPC的跳转地址到ELSE部分的下一位置
+                CX2 = CX;  // 记录跳过“ELSE”部分的跳转地址
+                GEN(JMP, 0, 0);  // 生成无条件跳转，从THEN部分跳出
+
                 GetSym();
                 STATEMENT(FSYS, LEV, TX);
-                CODE[CX2].A = CX;  // 回填无条件跳转的地址到ELSE部分结束后的代码
+                CODE[CX2].A = CX;  // 更新JMP的跳转地址
             }
             else {
-                SYM = preSYM;
-                FIN = preFIN;
-                FOUT = preFOUT;
-                CC = preCC;
-                LL = preLL;
-                CODE[CX2].A = CX;  // 如果没有ELSE部分，回填到当前代码位置
+                Retreat();
+                CODE[CX1].A = CX;
             }
             break;
         case BEGINSYM:
