@@ -45,6 +45,7 @@ public:
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton2();
 	afx_msg void OnBnClickedButton3();
+	afx_msg void OnBnClickedButton4();
 	void CCompileDlg::CompileCode();
 	CRichEditCtrl m_RichEdit; // 富文本编辑框控件的成员变量
 	CWinThread* m_pCompileThread;
@@ -176,13 +177,13 @@ public:
 
 	ALFA    KWORD[NORW + 1];
 	ALFA    MNEMONIC[9];
-	ALFA   ID;
+	ALFA    ID;
 	SYMBOL  WSYM[NORW + 1];
 	SYMBOL  SSYM['^' + 1];
 	SYMSET  DECLBEGSYS, STATBEGSYS, FACBEGSYS;
-	SYMBOL SYM; /*LAST SYMBOL READ*/
+	SYMBOL  SYM; /*LAST SYMBOL READ*/
 
-	INSTRUCTION  CODE[CXMAX];
+	INSTRUCTION  CODE[CXMAX] = {};
 
 	SYMSET SymSetAdd(SYMBOL SY, int* S) {
 		SYMSET S1;
@@ -201,10 +202,7 @@ public:
 	}
 
 	SYMSET SymSetNULL() {
-		SYMSET S; int i, n, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		return S;
+		return SYMSET(EOFSYM, 0);
 	}
 
 	SYMSET SymSetNew(SYMBOL a) {

@@ -541,16 +541,20 @@ void CCompileDlg::ListCode(int CX0) {
         return;
     }
 
+    logger(_T("--- START OF BLOCK ---"), _T("debug"));
+
     for (int i = CX0; i < CX; i++) {
         CString s;
         s.Format(_T("%3d"), i);
         CString mnemonic(MNEMONIC[CODE[i].F]);
         CString line;
-        line.Format(_T("%s %s %4d %4d"), s, mnemonic.GetString(), CODE[i].L, CODE[i].A);
+        line.Format(_T("%s %s %4d %4d"), s.GetString(), mnemonic.GetString(), CODE[i].L, CODE[i].A);
         logger(line, _T("info"));
 
         fprintf(FOUT, "%3d%5s%4d%4d\n", i, MNEMONIC[CODE[i].F], CODE[i].L, CODE[i].A);
     }
+
+    logger(_T("--- END OF BLOCK ---"), _T("debug"));
 }
 
 
