@@ -315,7 +315,7 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
 }
 
 void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
-    int i, CX1, CX2, CX3, CX4;
+    int i, CX1, CX2, CX3;
     SYMBOL op;
 
     switch (SYM) {

@@ -343,12 +343,9 @@ void CCompileDlg::CompileCode()
 	strcpy_s(MNEMONIC[JPC], sizeof(MNEMONIC[JPC]), "JPC");
 
 	// 初始化符号集
-	DECLBEGSYS = (int*)malloc(sizeof(int) * EOFSYM);
-	STATBEGSYS = (int*)malloc(sizeof(int) * EOFSYM);
-	FACBEGSYS = (int*)malloc(sizeof(int) * EOFSYM);
-	for (int j = 0; j < EOFSYM; j++) {
-		DECLBEGSYS[j] = 0;  STATBEGSYS[j] = 0;  FACBEGSYS[j] = 0;
-	}
+	DECLBEGSYS.resize(EOFSYM, 0);
+	STATBEGSYS.resize(EOFSYM, 0);
+	FACBEGSYS.resize(EOFSYM, 0);
 
 	DECLBEGSYS[CONSTSYM] = 1;
 	DECLBEGSYS[VARSYM] = 1;
@@ -363,6 +360,20 @@ void CCompileDlg::CompileCode()
 	FACBEGSYS[LPAREN] = 1;
 	FACBEGSYS[REALSYM] = 1;
 	FACBEGSYS[CHARSYM] = 1;
+
+	memset(LINE, 0, sizeof(LINE));
+
+	// 初始化TABLE数组
+	for (int i = 0; i < TXMAX; i++) {
+		memset(TABLE[i].NAME, 0, sizeof(TABLE[i].NAME));  // 清空名称
+		TABLE[i].KIND = OBJECTS::CONSTANT;  // 默认设置为常量类型
+		TABLE[i].VAL = 0;  // 默认常量值为0
+		TABLE[i].CVAL = '\0';  // 默认字符常量为空字符
+		TABLE[i].RVAL = 0.0;  // 默认实数常量为0.0
+		TABLE[i].vp.LEVEL = 0;  // 默认层级为0
+		TABLE[i].vp.ADR = 0;  // 默认地址为0
+		TABLE[i].vp.SIZE = 0;  // 默认大小为0
+	}
 
 	CString strInputFilePath = m_strFilePath;
 	int removeDot = strInputFilePath.ReverseFind('.');

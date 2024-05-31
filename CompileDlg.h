@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <vector>
+#include <cstdlib>
+
 #define WM_COMPILE_DONE (WM_USER + 101)
 
 const int AL = 10; /* LENGTH OF IDENTIFIERS */
@@ -65,14 +68,14 @@ public:
 	void CCompileDlg::Interpret();
 	int CCompileDlg::BASE(int L, int B, int S[]);
 
-	int ERR; /*ERROR FLAG*/
-	int NUM; /*LAST NUMBER READ*/
-	char CHVAR;
-	double REALNUM;
-	int CC;  // 字符计数
-	int LL;  // 行长度
-	int CX;  // 代码分配索引
-	char CH;  /*LAST CHAR READ*/
+	int ERR = 0; /*ERROR FLAG*/
+	int NUM = 0; /*LAST NUMBER READ*/
+	char CHVAR = 0;
+	double REALNUM = 0.0;
+	int CC = 0;  // 字符计数
+	int LL = 0;  // 行长度
+	int CX = 0;  // 代码分配索引
+	char CH = 0;  /*LAST CHAR READ*/
 	char LINE[81];
 
 	int prevCC;  // 上一个字符的位置记录
@@ -148,7 +151,7 @@ public:
 	} INSTRUCTION;
 
 	typedef char ALFA[11];
-	typedef int* SYMSET; // SET OF SYMBOL;
+	typedef std::vector<int> SYMSET;  // SET OF SYMBOL;
 	typedef enum {
 		CONSTANT,  // 常量
 		VARIABLE,  // 变量
@@ -194,74 +197,75 @@ public:
 
 	INSTRUCTION  CODE[CXMAX] = {};
 
-	SYMSET SymSetAdd(SYMBOL SY, int* S) {
-		SYMSET S1;
-		S1 = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (int i = 0; i < EOFSYM; i++) S1[i] = S[i];
+	SYMSET SymSetAdd(SYMBOL SY, const SYMSET& S) {
+		SYMSET S1 = S;
+		if (SY >= S1.size()) {
+			S1.resize(EOFSYM, 0); // 调整大小并初始化新元素为0
+		}
 		S1[SY] = 1;
 		return S1;
 	}
 
-	SYMSET SymSetUnion(SYMSET S1, SYMSET S2) {
-		SYMSET S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (int i = 0; i < EOFSYM; i++)
+	SYMSET SymSetUnion(const SYMSET& S1, const SYMSET& S2) {
+		SYMSET S(EOFSYM, 0);
+		for (int i = 0; i < EOFSYM; i++) {
 			if (S1[i] || S2[i]) S[i] = 1;
-			else S[i] = 0;
+		}
 		return S;
 	}
 
 	SYMSET SymSetNULL() {
-		SYMSET S; int i, n, k;
-		S = (SYMSET)malloc(sizeof(int) * 33);
-		for (i = 0; i < 33; i++) S[i] = 0;
-		return S;
+		return SYMSET(EOFSYM, 0);
 	}
 
 	SYMSET SymSetNew(SYMBOL a) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
+		SYMSET S(EOFSYM, 0);
 		S[a] = 1;
 		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a, SYMBOL b) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		S[a] = 1;  S[b] = 1;
+		SYMSET S(EOFSYM, 0);
+		S[a] = 1;
+		S[b] = 1;
 		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a, SYMBOL b, SYMBOL c) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		S[a] = 1;  S[b] = 1; S[c] = 1;
+		SYMSET S(EOFSYM, 0);
+		S[a] = 1;
+		S[b] = 1;
+		S[c] = 1;
 		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a, SYMBOL b, SYMBOL c, SYMBOL d) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		S[a] = 1;  S[b] = 1; S[c] = 1; S[d] = 1;
+		SYMSET S(EOFSYM, 0);
+		S[a] = 1;
+		S[b] = 1;
+		S[c] = 1;
+		S[d] = 1;
 		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a, SYMBOL b, SYMBOL c, SYMBOL d, SYMBOL e) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		S[a] = 1;  S[b] = 1; S[c] = 1; S[d] = 1; S[e] = 1;
+		SYMSET S(EOFSYM, 0);
+		S[a] = 1;
+		S[b] = 1;
+		S[c] = 1;
+		S[d] = 1;
+		S[e] = 1;
 		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a, SYMBOL b, SYMBOL c, SYMBOL d, SYMBOL e, SYMBOL f) {
-		SYMSET S; int i, k;
-		S = (SYMSET)malloc(sizeof(int) * EOFSYM);
-		for (i = 0; i < EOFSYM; i++) S[i] = 0;
-		S[a] = 1;  S[b] = 1; S[c] = 1; S[d] = 1; S[e] = 1; S[f] = 1;
+		SYMSET S(EOFSYM, 0);
+		S[a] = 1;
+		S[b] = 1;
+		S[c] = 1;
+		S[d] = 1;
+		S[e] = 1;
+		S[f] = 1;
 		return S;
 	}
 };
