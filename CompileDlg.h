@@ -202,7 +202,10 @@ public:
 	}
 
 	SYMSET SymSetNULL() {
-		return SYMSET(EOFSYM, 0);
+		SYMSET S; int i, n, k;
+		S = (SYMSET)malloc(sizeof(int) * 33);
+		for (i = 0; i < 33; i++) S[i] = 0;
+		return S;
 	}
 
 	SYMSET SymSetNew(SYMBOL a) {
@@ -252,5 +255,4 @@ public:
 		S[a] = 1;  S[b] = 1; S[c] = 1; S[d] = 1; S[e] = 1; S[f] = 1;
 		return S;
 	}
-	afx_msg void OnBnClickedButton4();
 };

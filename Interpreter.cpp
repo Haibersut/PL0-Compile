@@ -16,7 +16,7 @@ void CCompileDlg::Interpret() {
 	INSTRUCTION I;      // 当前指令
 	int S[STACKSIZE];   // 数据存储
 
-	//memset(S,0, sizeof(S));
+	memset(S,0, sizeof(S));
 
 	logger(_T("~~~ RUN PL0 ~~~"), _T("info"));
 	fprintf(FOUT, "~~~ RUN PL0 ~~~\n");

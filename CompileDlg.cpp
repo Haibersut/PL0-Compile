@@ -344,6 +344,7 @@ void CCompileDlg::CompileCode()
 	for (int j = 0; j < EOFSYM; j++) {
 		DECLBEGSYS[j] = 0;  STATBEGSYS[j] = 0;  FACBEGSYS[j] = 0;
 	}
+
 	DECLBEGSYS[CONSTSYM] = 1;
 	DECLBEGSYS[VARSYM] = 1;
 	DECLBEGSYS[PROCSYM] = 1;
