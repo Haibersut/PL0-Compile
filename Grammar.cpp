@@ -105,6 +105,7 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
                 switch (TABLE[i].KIND) {
                     case CONSTANT:  // 常量
                         GEN(LIT, 0, TABLE[i].VAL);
+                        GetSym();
                         break;
                     case CHAR:  // 字符常量
                         GEN(LIT, 0, TABLE[i].CVAL);
