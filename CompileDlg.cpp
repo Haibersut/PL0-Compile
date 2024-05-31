@@ -277,42 +277,46 @@ void CCompileDlg::CompileCode()
 	// 初始化关键字表
 	strcpy_s(KWORD[1], sizeof(KWORD[1]), "BEGIN");
 	strcpy_s(KWORD[2], sizeof(KWORD[2]), "CALL");
-	strcpy_s(KWORD[3], sizeof(KWORD[3]), "CONST");
-	strcpy_s(KWORD[4], sizeof(KWORD[4]), "DO");
-	strcpy_s(KWORD[5], sizeof(KWORD[5]), "ELSE");
-	strcpy_s(KWORD[6], sizeof(KWORD[6]), "END");
-	strcpy_s(KWORD[7], sizeof(KWORD[7]), "FOR");
-	strcpy_s(KWORD[8], sizeof(KWORD[8]), "IF");
-	strcpy_s(KWORD[9], sizeof(KWORD[9]), "ODD");
-	strcpy_s(KWORD[10], sizeof(KWORD[10]), "PROCEDURE");
-	strcpy_s(KWORD[11], sizeof(KWORD[11]), "PROGRAM");
-	strcpy_s(KWORD[12], sizeof(KWORD[12]), "READ");
-	strcpy_s(KWORD[13], sizeof(KWORD[13]), "STEP");
-	strcpy_s(KWORD[14], sizeof(KWORD[14]), "THEN");
-	strcpy_s(KWORD[15], sizeof(KWORD[15]), "UNTIL");
-	strcpy_s(KWORD[16], sizeof(KWORD[16]), "VAR");
-	strcpy_s(KWORD[17], sizeof(KWORD[17]), "WHILE");
-	strcpy_s(KWORD[18], sizeof(KWORD[18]), "WRITE");
+	strcpy_s(KWORD[3], sizeof(KWORD[3]), "CHAR");
+	strcpy_s(KWORD[4], sizeof(KWORD[4]), "CONST");
+	strcpy_s(KWORD[5], sizeof(KWORD[5]), "DO");
+	strcpy_s(KWORD[6], sizeof(KWORD[6]), "ELSE");
+	strcpy_s(KWORD[7], sizeof(KWORD[7]), "END");
+	strcpy_s(KWORD[8], sizeof(KWORD[8]), "FOR");
+	strcpy_s(KWORD[9], sizeof(KWORD[9]), "IF");
+	strcpy_s(KWORD[10], sizeof(KWORD[11]), "ODD");
+	strcpy_s(KWORD[11], sizeof(KWORD[12]), "PROCEDURE");
+	strcpy_s(KWORD[12], sizeof(KWORD[13]), "PROGRAM");
+	strcpy_s(KWORD[13], sizeof(KWORD[14]), "READ");
+	strcpy_s(KWORD[14], sizeof(KWORD[10]), "REAL");
+	strcpy_s(KWORD[15], sizeof(KWORD[15]), "STEP");
+	strcpy_s(KWORD[16], sizeof(KWORD[16]), "THEN");
+	strcpy_s(KWORD[17], sizeof(KWORD[17]), "UNTIL");
+	strcpy_s(KWORD[18], sizeof(KWORD[18]), "VAR");
+	strcpy_s(KWORD[19], sizeof(KWORD[19]), "WHILE");
+	strcpy_s(KWORD[20], sizeof(KWORD[20]), "WRITE");
 
 	// 初始化保留字表
 	WSYM[1] = BEGINSYM;
 	WSYM[2] = CALLSYM;
-	WSYM[3] = CONSTSYM;
-	WSYM[4] = DOSYM;
-	WSYM[5] = ELSESYM;
-	WSYM[6] = ENDSYM;
-	WSYM[7] = FORSYM;
-	WSYM[8] = IFSYM;
-	WSYM[9] = ODDSYM;
-	WSYM[10] = PROCSYM;
-	WSYM[11] = PROGSYM;
-	WSYM[12] = READSYM;
-	WSYM[13] = STEPSYM;
-	WSYM[14] = THENSYM;
-	WSYM[15] = UNTILSYM;
-	WSYM[16] = VARSYM;
-	WSYM[17] = WHILESYM;
-	WSYM[18] = WRITESYM;
+	WSYM[3] = CHARSYM;
+	WSYM[4] = CONSTSYM;
+	WSYM[5] = DOSYM;
+	WSYM[6] = ELSESYM;
+	WSYM[7] = ENDSYM;
+	WSYM[8] = FORSYM;
+	WSYM[9] = IFSYM;
+	WSYM[10] = ODDSYM;
+	WSYM[11] = PROCSYM;
+	WSYM[12] = PROGSYM;
+	WSYM[13] = READSYM;
+	WSYM[14] = REALSYM;
+	WSYM[15] = STEPSYM;
+	WSYM[16] = THENSYM;
+	WSYM[17] = UNTILSYM;
+	WSYM[18] = VARSYM;
+	WSYM[19] = WHILESYM;
+	WSYM[20] = WRITESYM;
 
 	// 初始化符号表
 	SSYM['+'] = PLUS;
@@ -326,6 +330,7 @@ void CCompileDlg::CompileCode()
 	SSYM['.'] = PERIOD;
 	// SSYM['#'] = NEQ;
 	SSYM[';'] = SEMICOLON;
+	SSYM['\''] = SQUOTES;
 
 	// 初始化助记符表
 	strcpy_s(MNEMONIC[LIT], sizeof(MNEMONIC[LIT]), "LIT");
@@ -356,6 +361,8 @@ void CCompileDlg::CompileCode()
 	FACBEGSYS[IDENT] = 1;
 	FACBEGSYS[NUMBER] = 1;
 	FACBEGSYS[LPAREN] = 1;
+	FACBEGSYS[REALSYM] = 1;
+	FACBEGSYS[CHARSYM] = 1;
 
 	CString strInputFilePath = m_strFilePath;
 	int removeDot = strInputFilePath.ReverseFind('.');

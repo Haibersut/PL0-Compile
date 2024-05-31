@@ -18,7 +18,7 @@ int CCompileDlg::SymIn(SYMBOL SYM, SYMSET S1) {
     return S1[SYM];
 }
 
-void CCompileDlg::GEN(FCT X, int Y, int Z) {
+void CCompileDlg::GEN(FCT X, int Y, double Z) {
     if (CX > CXMAX) {
         logger(_T("PROGRAM TOO LONG"), _T("error"));
         fprintf(FOUT, "PROGRAM TOO LONG\n");
@@ -31,6 +31,7 @@ void CCompileDlg::GEN(FCT X, int Y, int Z) {
     CX++;  // 代码索引增加
 }
 
+// 将对象（常量、变量或过程）插入到符号表中
 void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT INTO TABLE*/
     TX++;
     strcpy_s(TABLE[TX].NAME, sizeof(TABLE[TX].NAME), ID);
@@ -43,6 +44,12 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
             }
             TABLE[TX].VAL = NUM;
             break;
+        case CHAR:
+            TABLE[TX].CVAL = CHVAR;
+            break;
+        case REAL:
+            TABLE[TX].RVAL = REALNUM;
+            break;
         case VARIABLE:
             TABLE[TX].vp.LEVEL = LEV; 
             TABLE[TX].vp.ADR = DX; 
@@ -54,6 +61,7 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
     }
 }
 
+// 常量声明函数
 void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
     if (SYM == IDENT) {
         GetSym();
@@ -64,6 +72,14 @@ void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
             if (SYM == NUMBER) { 
                 ENTER(CONSTANT, LEV, TX, DX); 
                 GetSym(); 
+            }
+            else if (SYM == CHARSYM) {
+                ENTER(CHAR, LEV, TX, DX);
+                GetSym();
+            }
+            else if (SYM == REALSYM) {
+                ENTER(REAL, LEV, TX, DX);
+                GetSym();
             }
             else Error(2);
         }
@@ -87,31 +103,37 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
             else {
                 // 根据标识符的类型进行处理
                 switch (TABLE[i].KIND) {
-                case CONSTANT:  // 常量
-                    GEN(LIT, 0, TABLE[i].VAL);
-                    break;
-                case VARIABLE:  // 变量
-                    GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    // 处理后缀操作
-                    GetSym();  
-                    if (SYM == INCREMENT) {
-                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
-                        GEN(LIT, 0, 1);
-                        GEN(OPR, 0, 2);  // 加法
-                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
-                        GetSym();
-                    }
-                    else if (SYM == DECREMENT) {
-                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
-                        GEN(LIT, 0, 1);
-                        GEN(OPR, 0, 3);  // 减法
-                        GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
-                        GetSym();
-                    }
-                    break;
-                case PROCEDUR:  // 过程
-                    Error(21);
-                    break;
+                    case CONSTANT:  // 常量
+                        GEN(LIT, 0, TABLE[i].VAL);
+                        break;
+                    case CHAR:  // 字符常量
+                        GEN(LIT, 0, TABLE[i].CVAL);
+                        break;
+                    case REAL:  // 实数常量
+                        GEN(LIT, 0, TABLE[i].RVAL);
+                        break;
+                    case VARIABLE:  // 变量
+                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                        // 处理后缀操作
+                        GetSym();  
+                        if (SYM == INCREMENT) {
+                            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
+                            GEN(LIT, 0, 1);
+                            GEN(OPR, 0, 2);  // 加法
+                            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
+                            GetSym();
+                        }
+                        else if (SYM == DECREMENT) {
+                            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
+                            GEN(LIT, 0, 1);
+                            GEN(OPR, 0, 3);  // 减法
+                            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
+                            GetSym();
+                        }
+                        break;
+                    case PROCEDUR:  // 过程
+                        Error(21);
+                        break;
                 }
             }
         }
@@ -121,6 +143,14 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
                 NUM = 0;
             }
             GEN(LIT, 0, NUM);  // 常量
+            GetSym();
+        }
+        else if (SYM == CHARSYM) {  // 字符常量
+            GEN(LIT, 0, CHVAR);  
+            GetSym();
+        }
+        else if (SYM == REALSYM) {  // 实数常量
+            GEN(LIT, 0, REALNUM);  
             GetSym();
         }
         else if (SYM == LPAREN) {  // 表达式
@@ -142,13 +172,13 @@ void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL MULOP;
 
     // 处理因子
-    FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH)), LEV, TX);
+    FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH, CHARSYM, REALSYM)), LEV, TX);
 
     while (SYM == TIMES || SYM == SLASH) {
         MULOP = SYM;
         GetSym();
 
-        FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH)), LEV, TX);
+        FACTOR(SymSetUnion(FSYS, SymSetNew(TIMES, SLASH, CHARSYM, REALSYM)), LEV, TX);
 
         // 乘法
         if (MULOP == TIMES)
@@ -226,6 +256,14 @@ void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX) {
     if (SYM == IDENT) { 
         ENTER(VARIABLE, LEV, TX, DX); 
         GetSym(); 
+    }
+    else if (SYM == CHARSYM) {
+        ENTER(CHAR, LEV, TX, DX);
+        GetSym();
+    }
+    else if (SYM == REALSYM) {
+        ENTER(REAL, LEV, TX, DX);
+        GetSym();
     }
     else 
         Error(4);
@@ -559,13 +597,14 @@ void CCompileDlg::ListCode(int CX0) {
 
 
 void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
-    int DX = 3;    /*DATA ALLOCATION INDEX*/
-    int TX0 = TX;  /*INITIAL TABLE INDEX*/
-    int CX0 = CX;  /*INITIAL CODE INDEX*/
+    int DX = 3;    // 数据分配索引
+    int TX0 = TX;  // 初始表索引
+    int CX0 = CX;  // 初始代码索引
     TABLE[TX].vp.ADR = CX; GEN(JMP, 0, 0);
-    if (LEV > LEVMAX) Error(32);
+    if (LEV > LEVMAX) 
+        Error(32);
     do {
-        if (SYM == CONSTSYM) {
+        if (SYM == CONSTSYM) { // 处理常量声明
             GetSym();
             do {
                 ConstDeclaration(LEV, TX, DX);
@@ -579,7 +618,7 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                     Error(5);
             } while (SYM == IDENT);
         }
-        if (SYM == VARSYM) {
+        if (SYM == VARSYM) { // 处理变量声明
             GetSym();
             do {
                 VarDeclaration(LEV, TX, DX);
@@ -593,7 +632,7 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                     Error(5);
             } while (SYM == IDENT);
         }
-        while (SYM == PROCSYM) {
+        while (SYM == PROCSYM) { // 处理过程声明
             GetSym();
             if (SYM == IDENT) { 
                 ENTER(PROCEDUR, LEV, TX, DX); 
@@ -605,21 +644,21 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                 GetSym();
             else 
                 Error(5);
-            Block(LEV + 1, TX, SymSetAdd(SEMICOLON, FSYS));
+            Block(LEV + 1, TX, SymSetAdd(SEMICOLON, FSYS)); // 处理过程体
             if (SYM == SEMICOLON) {
                 GetSym();
                 TEST(SymSetUnion(SymSetNew(IDENT, PROCSYM), STATBEGSYS), FSYS, 6);
             }
             else Error(5);
         }
-        TEST(SymSetAdd(IDENT, STATBEGSYS), DECLBEGSYS, 7);
+        TEST(SymSetAdd(IDENT, STATBEGSYS), DECLBEGSYS, 7); // 检查声明部分是否结束
     } while (SymIn(SYM, DECLBEGSYS));
-    CODE[TABLE[TX0].vp.ADR].A = CX;
-    TABLE[TX0].vp.ADR = CX;   /*START ADDR OF CODE*/
-    TABLE[TX0].vp.SIZE = DX;  /*SIZE OF DATA SEGMENT*/
-    GEN(INI, 0, DX);
+    CODE[TABLE[TX0].vp.ADR].A = CX; // 回填跳转地址
+    TABLE[TX0].vp.ADR = CX;   // 记录代码开始地址
+    TABLE[TX0].vp.SIZE = DX;  // 记录数据段大小
+    GEN(INI, 0, DX); // 生成初始化指令
     STATEMENT(SymSetUnion(SymSetNew(SEMICOLON, ENDSYM), FSYS), LEV, TX);
-    GEN(OPR, 0, 0);  /*RETURN*/
-    TEST(FSYS, SymSetNULL(), 8);
+    GEN(OPR, 0, 0);  // 生成返回指令
+    TEST(FSYS, SymSetNULL(), 8); // 检查程序块结束
     ListCode(CX0);
 }

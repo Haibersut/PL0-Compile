@@ -7,7 +7,7 @@
 #define WM_COMPILE_DONE (WM_USER + 101)
 
 const int AL = 10; /* LENGTH OF IDENTIFIERS */
-const int NORW = 18; /* # OF RESERVED WORDS */
+const int NORW = 20; /* # OF RESERVED WORDS */
 const int TXMAX = 100; /* LENGTH OF IDENTIFIER TABLE */
 const int NMAX = 14; /* MAX NUMBER OF DEGITS IN NUMBERS */
 const int AMAX = 2047; /* MAXIMUM ADDRESS */
@@ -67,6 +67,8 @@ public:
 
 	int ERR; /*ERROR FLAG*/
 	int NUM; /*LAST NUMBER READ*/
+	char CHVAR;
+	double REALNUM;
 	int CC;  // 字符计数
 	int LL;  // 行长度
 	int CX;  // 代码分配索引
@@ -89,12 +91,14 @@ public:
 		PLUS, MINUS, TIMES, SLASH,
 		ODDSYM, EQL, NEQ, LSS, LEQ, GTR, GEQ,
 		LPAREN, RPAREN, COMMA, SEMICOLON, PERIOD, BECOMES,
+		SQUOTES,
 
 		// 关键字
 		BEGINSYM, ENDSYM, IFSYM, THENSYM,
 		WHILESYM, WRITESYM, READSYM, DOSYM, CALLSYM,
 		CONSTSYM, VARSYM, PROCSYM, PROGSYM,
 		ELSESYM, FORSYM, STEPSYM, UNTILSYM,
+		REALSYM, CHARSYM,
 
 		// 新增运算符
 		INCREMENT, DECREMENT,
@@ -111,12 +115,13 @@ public:
 		"SLASH", "ODDSYM", "EQL", 
 		"NEQ", "LSS", "LEQ", "GTR", "GEQ",
 		"LPAREN", "RPAREN", "COMMA", "SEMICOLON", "PERIOD",
-		"BECOMES", 
+		"BECOMES", "SQUOTES",
 		
 		"BEGINSYM", "ENDSYM", "IFSYM", "THENSYM",
 		"WHILESYM", "WRITESYM", "READSYM", "DOSYM", "CALLSYM",
 		"CONSTSYM", "VARSYM", "PROCSYM", "PROGSYM",
 		"ELSESYM", "FORSYM", "STEPSYM", "UNTILSYM",
+		"REALSYM", "CHARSYM",
 
 		"INCREMENT", "DECREMENT",
 		"PLUSEQUAL", "MINUSEQUAL",
@@ -142,12 +147,14 @@ public:
 		int A;     // 0..AMAX    偏移地址
 	} INSTRUCTION;
 
-	typedef  char ALFA[11];
-	typedef  int* SYMSET; // SET OF SYMBOL;
+	typedef char ALFA[11];
+	typedef int* SYMSET; // SET OF SYMBOL;
 	typedef enum {
 		CONSTANT,  // 常量
 		VARIABLE,  // 变量
-		PROCEDUR   // 过程
+		PROCEDUR,  // 过程
+		CHAR,      // 字符
+		REAL       // 实数
 	} OBJECTS;     // 对象的种类
 
 	struct {
@@ -155,6 +162,8 @@ public:
 		OBJECTS KIND;  // 对象种类
 		union {
 			int VAL;   // 常量的值
+			char CVAL; // 字符常量的值
+			double RVAL; // 实数常量的值
 			struct {
 				int LEVEL;  // 变量或过程的层级
 				int ADR;    // 变量或过程的地址
@@ -163,7 +172,7 @@ public:
 		};
 	} TABLE[TXMAX];
 
-	void CCompileDlg::GEN(FCT X, int Y, int Z);
+	void CCompileDlg::GEN(FCT X, int Y, double Z);
 	void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS);
 	void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX);
 	void CCompileDlg::TEST(SYMSET S1, SYMSET S2, int N);
@@ -179,7 +188,7 @@ public:
 	ALFA    MNEMONIC[9];
 	ALFA    ID;
 	SYMBOL  WSYM[NORW + 1];
-	SYMBOL  SSYM['^' + 1];
+	SYMBOL  SSYM[128];
 	SYMSET  DECLBEGSYS, STATBEGSYS, FACBEGSYS;
 	SYMBOL  SYM; /*LAST SYMBOL READ*/
 

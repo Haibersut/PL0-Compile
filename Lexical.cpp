@@ -25,8 +25,7 @@ void CCompileDlg::GetCh() {
             logger(_T("PROGRAM INCOMPLETE"), _T("error"));
             fprintf(FOUT, "PROGRAM INCOMPLETE\n");
             fclose(FIN);
-            fclose(FOUT);
-            return;
+            throw std::runtime_error("PROGRAM INCOMPLETE");
         }
         LL = 0;
         CC = 0;
@@ -54,26 +53,31 @@ void CCompileDlg::GetSym() {
     int i, J, K;    // 定义循环变量和索引
     ALFA A;         // 定义标识符数组
 
-    while (CH!=EOF && CH <= ' ') {
+    double realPart = 0.0;
+    double fractionPart = 0.0;
+    double fractionDivisor = 1.0;
+    bool isFraction = false;
+
+    while (CH != EOF && CH <= ' ') {
         GetCh(); // 跳过空白字符
     }
 
-    if (CH >= 'A' && CH <= 'Z') {
+    if (isalpha(CH)) {
         K = 0;
         do {
             if (K < AL) 
                 A[K++] = CH;
             GetCh();
-        } while ((CH >= 'A' && CH <= 'Z') || (CH >= '0' && CH <= '9'));
+        } while (isalpha(CH) || isdigit(CH));
         A[K] = '\0';
         strcpy_s(ID, sizeof(ID), A);
         i = 1; 
         J = NORW;
         do {
             K = (i + J) / 2;
-            if (strcmp(ID, KWORD[K]) <= 0) 
+            if (_stricmp(ID, KWORD[K]) <= 0)
                 J = K - 1;
-            if (strcmp(ID, KWORD[K]) >= 0) 
+            if (_stricmp(ID, KWORD[K]) >= 0)
                 i = K + 1;
         } while (i <= J);
         if (i - 1 > J) {
@@ -83,16 +87,30 @@ void CCompileDlg::GetSym() {
             SYM = IDENT;
         }
     }
-    else if (CH >= '0' && CH <= '9') { // 如果是数字，则是数值
-        K = 0; 
-        NUM = 0; 
+    else if (isdigit(CH)) { // 如果是数字，则是数值
+        K = 0;
+        NUM = 0;
         SYM = NUMBER;
         do {
             NUM = 10 * NUM + (CH - '0');
-            K++; 
+            K++;
             GetCh();
-        } while (CH >= '0' && CH <= '9'); 
-        if (K > NMAX) 
+        } while (isdigit(CH));
+        if (CH == '.') {
+            isFraction = true;
+            GetCh();
+            while (isdigit(CH)) {
+                fractionPart = 10 * fractionPart + (CH - '0');
+                fractionDivisor *= 10;
+                GetCh();
+            }
+            REALNUM = NUM + fractionPart / fractionDivisor;
+            SYM = REALSYM;
+        }
+        else {
+            REALNUM = NUM;
+        }
+        if (K > NMAX)
             Error(30);
     }
     else if (CH == ':') { // 检查赋值符号
@@ -174,11 +192,22 @@ void CCompileDlg::GetSym() {
         } 
         else SYM = GTR;
     }
+    else if (CH == '\'') {
+        GetCh();
+        CHVAR = CH;
+        GetCh();
+        if (CH == '\'') {
+            SYM = CHARSYM;
+            GetCh();
+        }
+        else {
+            Error(31); // 缺少结束的单引号
+        }
+    }
     else { // 其他字符
-        if (CH > '^') {
+        if (CH >= 128) {
             logger(CString("致命错误：无效的字符"), _T("error"));
             throw std::runtime_error("致命错误：无效的字符");
-            return;
         }
         SYM = SSYM[CH]; // 根据字符设置SYM
         GetCh();
