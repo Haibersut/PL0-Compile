@@ -64,6 +64,8 @@ public:
 	void CCompileDlg::Error(int n);
 	void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX);
 	void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX);
+	void CCompileDlg::CharDeclaration(int LEV, int& TX, int& DX);
+	void CCompileDlg::RealDeclaration(int LEV, int& TX, int& DX);
 	void CCompileDlg::ListCode(int CX0);
 	void CCompileDlg::Interpret();
 	int CCompileDlg::BASE(int L, int B, int S[]);
@@ -148,6 +150,7 @@ public:
 		FCT F;     // 函数代码
 		int L;     // 0..LEVMAX  层级
 		int A;     // 0..AMAX    偏移地址
+		double D;  // 用于存储浮点数
 	} INSTRUCTION;
 
 	typedef char ALFA[11];
@@ -171,11 +174,14 @@ public:
 				int LEVEL;  // 变量或过程的层级
 				int ADR;    // 变量或过程的地址
 				int SIZE;   // 变量或过程的大小
+				bool CVAL;  // 是否为字符变量
+				bool RVAL;  // 是否为实数变量
 			} vp;  // 变量或过程的信息
 		};
 	} TABLE[TXMAX];
 
-	void CCompileDlg::GEN(FCT X, int Y, double Z);
+	void CCompileDlg::GEN(FCT X, int Y, int Z);
+	void CCompileDlg::GEN(FCT X, int Y, double D);
 	void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS);
 	void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX);
 	void CCompileDlg::TEST(SYMSET S1, SYMSET S2, int N);

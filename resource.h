@@ -9,6 +9,7 @@
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     130
 #define IDC_INPUT_EDIT                  130
+#define IDD_INPUT_DIALOG                130
 #define IDC_BUTTON1                     1000
 #define IDC_BUTTON2                     1002
 #define IDC_RICHEDIT21                  1003

@@ -18,7 +18,7 @@ int CCompileDlg::SymIn(SYMBOL SYM, SYMSET S1) {
     return S1[SYM];
 }
 
-void CCompileDlg::GEN(FCT X, int Y, double Z) {
+void CCompileDlg::GEN(FCT X, int Y, int Z) {
     if (CX > CXMAX) {
         logger(_T("PROGRAM TOO LONG"), _T("error"));
         fprintf(FOUT, "PROGRAM TOO LONG\n");
@@ -27,7 +27,20 @@ void CCompileDlg::GEN(FCT X, int Y, double Z) {
     }
     CODE[CX].F = X;  // 设置函数代码
     CODE[CX].L = Y;  // 设置层级
-    CODE[CX].A = Z;  // 设置偏移地址
+    CODE[CX].A = Z; // 设置偏移地址
+    CX++;  // 代码索引增加
+}
+
+void CCompileDlg::GEN(FCT X, int Y, double D) {
+    if (CX > CXMAX) {
+        logger(_T("PROGRAM TOO LONG"), _T("error"));
+        fprintf(FOUT, "PROGRAM TOO LONG\n");
+        fclose(FOUT);
+        throw std::out_of_range("PROGRAM TOO LONG");
+    }
+    CODE[CX].F = X;  // 设置函数代码
+    CODE[CX].L = Y;  // 设置层级
+    CODE[CX].D = D; // 设置偏移地址
     CX++;  // 代码索引增加
 }
 
@@ -45,6 +58,10 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
             TABLE[TX].VAL = NUM;
             break;
         case CHAR:
+            if (CHVAR > 127 || CHVAR < 0) {
+                Error(31);
+                CHVAR = 0;
+            }
             TABLE[TX].CVAL = CHVAR;
             break;
         case REAL:
@@ -61,7 +78,16 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
     }
 }
 
-// 常量声明函数
+// 变量声明
+void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX) {
+    if (SYM == IDENT) { 
+        ENTER(VARIABLE, LEV, TX, DX); 
+        GetSym(); 
+    }
+    else Error(4);
+}
+
+// 常量声明
 void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
     if (SYM == IDENT) {
         GetSym();
@@ -73,17 +99,28 @@ void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
                 ENTER(CONSTANT, LEV, TX, DX); 
                 GetSym(); 
             }
-            else if (SYM == CHARSYM) {
-                ENTER(CHAR, LEV, TX, DX);
-                GetSym();
-            }
-            else if (SYM == REALSYM) {
-                ENTER(REAL, LEV, TX, DX);
-                GetSym();
-            }
-            else Error(2);
+            else 
+                Error(2);
         }
-        else Error(3);
+        else 
+            Error(3);
+    }
+    else 
+        Error(4);
+}
+
+void CCompileDlg::CharDeclaration(int LEV, int& TX, int& DX) {
+    if (SYM == IDENT) {
+        ENTER(CHAR, LEV, TX, DX);
+        GetSym();
+    }
+    else Error(4);
+}
+
+void CCompileDlg::RealDeclaration(int LEV, int& TX, int& DX) {
+    if (SYM == IDENT) {
+        ENTER(REAL, LEV, TX, DX);
+        GetSym();
     }
     else Error(4);
 }
@@ -103,7 +140,7 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
             else {
                 // 根据标识符的类型进行处理
                 switch (TABLE[i].KIND) {
-                    case CONSTANT:  // 常量
+                    case CONSTANT:  // 整型常量
                         GEN(LIT, 0, TABLE[i].VAL);
                         GetSym();
                         break;
@@ -113,7 +150,7 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
                     case REAL:  // 实数常量
                         GEN(LIT, 0, TABLE[i].RVAL);
                         break;
-                    case VARIABLE:  // 变量
+                    case VARIABLE:  // 整型变量
                         GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                         // 处理后缀操作
                         GetSym();  
@@ -147,10 +184,16 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
             GetSym();
         }
         else if (SYM == CHARSYM) {  // 字符常量
+            if (CHVAR > 127 || CHVAR < 0) {
+                Error(31);
+                CHVAR = 0;
+            }
+            TABLE[TX].vp.CVAL = true;
             GEN(LIT, 0, CHVAR);  
             GetSym();
         }
         else if (SYM == REALSYM) {  // 实数常量
+            TABLE[TX].vp.RVAL = true;
             GEN(LIT, 0, REALNUM);  
             GetSym();
         }
@@ -250,24 +293,6 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
         else
             GEN(OPR, 0, 3);
     }
-}
-
-// 变量声明
-void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX) {
-    if (SYM == IDENT) { 
-        ENTER(VARIABLE, LEV, TX, DX); 
-        GetSym(); 
-    }
-    else if (SYM == CHARSYM) {
-        ENTER(CHAR, LEV, TX, DX);
-        GetSym();
-    }
-    else if (SYM == REALSYM) {
-        ENTER(REAL, LEV, TX, DX);
-        GetSym();
-    }
-    else 
-        Error(4);
 }
 
 // 测试
@@ -630,6 +655,34 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                 if (SYM == SEMICOLON) 
                     GetSym();
                 else 
+                    Error(5);
+            } while (SYM == IDENT);
+        }
+        if (SYM == CHARSYM) { // 处理字符声明
+            GetSym();
+            do {
+                VarDeclaration(LEV, TX, DX);
+                while (SYM == COMMA) {
+                    GetSym();
+                    VarDeclaration(LEV, TX, DX);
+                }
+                if (SYM == SEMICOLON)
+                    GetSym();
+                else
+                    Error(5);
+            } while (SYM == IDENT);
+        }
+        if (SYM == REALSYM) { // 处理实数声明
+            GetSym();
+            do {
+                VarDeclaration(LEV, TX, DX);
+                while (SYM == COMMA) {
+                    GetSym();
+                    VarDeclaration(LEV, TX, DX);
+                }
+                if (SYM == SEMICOLON)
+                    GetSym();
+                else
                     Error(5);
             } while (SYM == IDENT);
         }

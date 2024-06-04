@@ -3,10 +3,14 @@
 #include "Compile.h"
 #include "afxdialogex.h"
 #include <stdio.h>
+#include "CInputDialog.h"
 
 int CCompileDlg::BASE(int L, int B, int S[]) {
 	int B1 = B; /*FIND BASE L LEVELS DOWN*/
-	while (L > 0) { B1 = S[B1]; L = L - 1; }
+	while (L > 0) { 
+		B1 = S[B1]; 
+		L = L - 1; 
+	}
 	return B1;
 }
 
@@ -101,16 +105,20 @@ void CCompileDlg::Interpret() {
 						}
 					case 15: 
 						{
-							logger(_T(""), _T("info"));
+							//logger(_T(""), _T("info"));
 						}
 						break;
 					case 16: 
-						T++;  
-						/*S[T] = InputBox("Input", "Enter a number:", 0).ToInt();*/
-						CString message;
-						message.Format(_T("? %d"), S[T]);
-						logger(message, _T("info"));
-						fprintf(FOUT, "? %d\n", S[T]);
+						T++;
+						CInputDialog inputDlg;
+						if (inputDlg.DoModal() == IDOK)
+						{
+							S[T] = _ttoi(inputDlg.m_input);
+							CString message;
+							message.Format(_T("? %d"), S[T]);
+							logger(message, _T("info"));
+							fprintf(FOUT, "? %d\n", S[T]);
+						}
 						break;
 				}
 				break;

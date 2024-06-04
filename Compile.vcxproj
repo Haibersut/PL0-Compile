@@ -190,6 +190,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CInputDialog.h" />
     <ClInclude Include="Compile.h" />
     <ClInclude Include="CompileDlg.h" />
     <ClInclude Include="framework.h" />
@@ -198,6 +199,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CInputDialog.cpp" />
     <ClCompile Include="Compile.cpp" />
     <ClCompile Include="CompileDlg.cpp" />
     <ClCompile Include="Error.cpp" />
