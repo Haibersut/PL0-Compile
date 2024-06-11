@@ -295,6 +295,7 @@ void CCompileDlg::CompileCode()
 	strcpy_s(KWORD[18], sizeof(KWORD[18]), "VAR");
 	strcpy_s(KWORD[19], sizeof(KWORD[19]), "WHILE");
 	strcpy_s(KWORD[20], sizeof(KWORD[20]), "WRITE");
+	strcpy_s(KWORD[21], sizeof(KWORD[21]), "WRITEC");
 
 	// 初始化保留字表
 	WSYM[1] = BEGINSYM;
@@ -317,6 +318,7 @@ void CCompileDlg::CompileCode()
 	WSYM[18] = VARSYM;
 	WSYM[19] = WHILESYM;
 	WSYM[20] = WRITESYM;
+	WSYM[21] = WRITECSYM;
 
 	// 初始化符号表
 	SSYM['+'] = PLUS;
@@ -373,6 +375,8 @@ void CCompileDlg::CompileCode()
 		TABLE[i].vp.LEVEL = 0;  // 默认层级为0
 		TABLE[i].vp.ADR = 0;  // 默认地址为0
 		TABLE[i].vp.SIZE = 0;  // 默认大小为0
+		TABLE[i].vp.CVAL = false;
+		TABLE[i].vp.RVAL = false;
 	}
 
 	CString strInputFilePath = m_strFilePath;

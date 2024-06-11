@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include "CInputDialog.h"
 
-int CCompileDlg::BASE(int L, int B, int S[]) {
+int CCompileDlg::BASE(int L, int B, Data S[]) {
 	int B1 = B; /*FIND BASE L LEVELS DOWN*/
-	while (L > 0) { 
-		B1 = S[B1]; 
-		L = L - 1; 
+	while (L > 0) {
+		B1 = S[B1].i;
+		L = L - 1;
 	}
 	return B1;
 }
@@ -18,7 +18,7 @@ void CCompileDlg::Interpret() {
 	const int STACKSIZE = 500;
 	int P, B, T;        // 程序计数器，基址寄存器，栈顶寄存器
 	INSTRUCTION I;      // 当前指令
-	int S[STACKSIZE];   // 数据存储
+	Data S[STACKSIZE];   // 数据存储
 
 	memset(S,0, sizeof(S));
 
@@ -29,9 +29,6 @@ void CCompileDlg::Interpret() {
 	T = 0; 
 	B = 1; 
 	P = 0;
-	S[1] = 0; 
-	S[2] = 0; 
-	S[3] = 0;
 
 	do {
 		I = CODE[P]; 
@@ -39,66 +36,139 @@ void CCompileDlg::Interpret() {
 		switch (I.F) {
 			case LIT: 
 				T++; 
-				S[T] = I.A; 
+				if (I.D != 0.0) { // 浮点数处理
+					if (S[T].i != 0) {
+						S[T].i = 0;
+					}
+					S[T].d = I.D;
+				}
+				else { // 整数处理
+					S[T].i = I.A;
+				}
 				break;
 			case OPR:
 				// 运算符处理
 				switch (I.A) {
 					case 0: /*RETURN*/ 
 						T = B - 1; 
-						P = S[T + 3]; 
-						B = S[T + 2]; 
+						P = S[T + 3].i; 
+						B = S[T + 2].i;
 						break;
 					case 1: /*NEG*/
-						S[T] = -S[T];  
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = -S[T].d;
+						}
+						else { // 整数处理
+							S[T].i = -S[T].i;
+						}
 						break;
 					case 2: /*ADD*/
 						T--; 
-						S[T] = S[T] + S[T + 1];   
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = S[T].d + S[T + 1].d;
+						}
+						else { // 整数处理
+							S[T].i = S[T].i + S[T + 1].i;
+						}
 						break;
 					case 3: /*SUB*/
 						T--; 
-						S[T] = S[T] - S[T + 1];   
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = S[T].d - S[T + 1].d;
+						}
+						else { // 整数处理
+							S[T].i = S[T].i - S[T + 1].i;
+						}
 						break;
 					case 4: /*MUL*/
 						T--; 
-						S[T] = S[T] * S[T + 1];   
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = S[T].d * S[T + 1].d;
+						}
+						else { // 整数处理
+							S[T].i = S[T].i * S[T + 1].i;
+						}
 						break;
 					case 5: /*DIV*/
 						T--; 
-						S[T] = S[T] / S[T + 1]; 
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = S[T].d / S[T + 1].d;
+						}
+						else { // 整数处理
+							S[T].i = S[T].i / S[T + 1].i;
+						}
 						break;
 					case 6: 
-						S[T] = (S[T] % 2 != 0);        
+						if (S[T].d != 0.0) { // 浮点数处理
+							Error(33);
+						}
+						else { // 整数处理
+							S[T].i = S[T].i % S[T + 1].i;
+						}
 						break;
 					case 8: 
 						T--; 
-						S[T] = S[T] == S[T + 1];  
+						if (S[T].d != 0.0) { // 浮点数处理
+							// 判断浮点数相等
+						}
+						else { // 整数处理
+							S[T].i = S[T].i == S[T + 1].i;
+						}
 						break;
 					case 9: 
 						T--; 
-						S[T] = S[T] != S[T + 1];  
+						if (I.D != 0.0) { // 浮点数处理
+							// 判断浮点数不相等
+						}
+						else { // 整数处理
+							S[T].i = S[T].i != S[T + 1].i;
+						}
 						break;
 					case 10: 
 						T--; 
-						S[T] = S[T] < S[T + 1];   
+						if (I.D != 0) { // 浮点数处理
+							// 判断浮点数小于
+						}
+						else { // 整数处理
+							S[T].i = S[T].i < S[T + 1].i;
+						}
 						break;
 					case 11: 
 						T--; 
-						S[T] = S[T] >= S[T + 1];  
+						if (I.D != 0) { // 浮点数处理
+							// 判断浮点数大于等于
+						}
+						else { // 整数处理
+							S[T].i = S[T].i >= S[T + 1].i;
+						}
 						break;
 					case 12: 
 						T--; 
-						S[T] = S[T] > S[T + 1];   
+						if (I.D != 0) { // 浮点数处理
+							// 判断浮点数大于
+						}
+						else { // 整数处理
+							S[T].i = S[T].i > S[T + 1].i;
+						}
 						break;
 					case 13: 
 						T--; 
-						S[T] = S[T] <= S[T + 1];  
+						if (I.D != 0) { // 浮点数处理
+							// 判断浮点数小于等于
+						}
+						else { // 整数处理
+							S[T].i = S[T].i <= S[T + 1].i;
+						}
 						break;
 					case 14: 
 						{
 							CString str;
-							str.Format(_T("%d"), S[T]);
+							if (S[T].d != 0.0) { // 浮点数处理
+								str.Format(_T("%f"), S[T].d);
+							}
+							else { // 整数处理
+								str.Format(_T("%d"), S[T].i);
+							}
 							logger(str, _T("info"));
 							T--;
 							break;
@@ -108,32 +178,45 @@ void CCompileDlg::Interpret() {
 							//logger(_T(""), _T("info"));
 						}
 						break;
-					case 16: 
+					case 16:
+						{
+							CString str;
+							if (S[T].d != 0.0) { // 浮点数处理
+								str.Format(_T("%c"), (int)S[T].d);
+							}
+							else { // 整数处理
+								str.Format(_T("%c"), S[T].i);
+							}
+							logger(str, _T("info"));
+							T--;
+							break;
+						}
+					case 17: 
 						T++;
 						CInputDialog inputDlg;
 						if (inputDlg.DoModal() == IDOK)
 						{
-							S[T] = _ttoi(inputDlg.m_input);
+							S[T].i = _ttoi(inputDlg.m_input);
 							CString message;
-							message.Format(_T("? %d"), S[T]);
+							message.Format(_T("? %d"), S[T].i);
 							logger(message, _T("info"));
-							fprintf(FOUT, "? %d\n", S[T]);
+							fprintf(FOUT, "? %d\n", S[T].i);
 						}
 						break;
 				}
 				break;
-			case LOD: 
+			case LOD:
 				T++; 
 				S[T] = S[BASE(I.L, B, S) + I.A]; 
 				break;
-			case STO: 
+			case STO:
 				S[BASE(I.L, B, S) + I.A] = S[T]; 
 				T--; 
 				break;
 			case CAL: /*GENERAT NEW Block MARK*/
-				S[T + 1] = BASE(I.L, B, S); 
-				S[T + 2] = B; 
-				S[T + 3] = P;
+				S[T + 1].i = BASE(I.L, B, S); 
+				S[T + 2].i = B; 
+				S[T + 3].i = P;
 				B = T + 1; 
 				P = I.A; 
 				break;
@@ -144,12 +227,13 @@ void CCompileDlg::Interpret() {
 				P = I.A; 
 				break;
 			case JPC: 
-				if (S[T] == 0) 
+				if (S[T].i == 0) 
 					P = I.A;  
 				T--;  
 				break;
 		} /*switch*/
 	} while (P != 0);
+	memset(CODE, 0, sizeof(CODE));
 	logger(_T("~~~ END PL0 ~~~"), _T("info"));
 	fprintf(FOUT, "~~~ END PL0 ~~~\n");
 }

@@ -1,4 +1,4 @@
-
+﻿
 // CompileDlg.h: 头文件
 //
 
@@ -6,11 +6,13 @@
 
 #include <vector>
 #include <cstdlib>
+#include <fstream>
+#include <string>
 
 #define WM_COMPILE_DONE (WM_USER + 101)
 
 const int AL = 10; /* LENGTH OF IDENTIFIERS */
-const int NORW = 20; /* # OF RESERVED WORDS */
+const int NORW = 21; /* # OF RESERVED WORDS */
 const int TXMAX = 100; /* LENGTH OF IDENTIFIER TABLE */
 const int NMAX = 14; /* MAX NUMBER OF DEGITS IN NUMBERS */
 const int AMAX = 2047; /* MAXIMUM ADDRESS */
@@ -64,11 +66,18 @@ public:
 	void CCompileDlg::Error(int n);
 	void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX);
 	void CCompileDlg::VarDeclaration(int LEV, int& TX, int& DX);
-	void CCompileDlg::CharDeclaration(int LEV, int& TX, int& DX);
-	void CCompileDlg::RealDeclaration(int LEV, int& TX, int& DX);
 	void CCompileDlg::ListCode(int CX0);
 	void CCompileDlg::Interpret();
-	int CCompileDlg::BASE(int L, int B, int S[]);
+
+	typedef struct {
+		int i;
+		double d;
+	} Data;
+
+	int CCompileDlg::BASE(int L, int B, Data S[]);
+
+	std::vector<bool> s_CODE;
+	bool startSIGN = false;
 
 	int ERR = 0; /*ERROR FLAG*/
 	int NUM = 0; /*LAST NUMBER READ*/
@@ -103,7 +112,7 @@ public:
 		WHILESYM, WRITESYM, READSYM, DOSYM, CALLSYM,
 		CONSTSYM, VARSYM, PROCSYM, PROGSYM,
 		ELSESYM, FORSYM, STEPSYM, UNTILSYM,
-		REALSYM, CHARSYM,
+		REALSYM, CHARSYM, WRITECSYM,
 
 		// 新增运算符
 		INCREMENT, DECREMENT,
@@ -126,7 +135,7 @@ public:
 		"WHILESYM", "WRITESYM", "READSYM", "DOSYM", "CALLSYM",
 		"CONSTSYM", "VARSYM", "PROCSYM", "PROGSYM",
 		"ELSESYM", "FORSYM", "STEPSYM", "UNTILSYM",
-		"REALSYM", "CHARSYM",
+		"REALSYM", "CHARSYM", "WRITECSYM",
 
 		"INCREMENT", "DECREMENT",
 		"PLUSEQUAL", "MINUSEQUAL",
@@ -180,6 +189,9 @@ public:
 		};
 	} TABLE[TXMAX];
 
+	bool setCVAL = false;
+	bool setRVAL = false;
+
 	void CCompileDlg::GEN(FCT X, int Y, int Z);
 	void CCompileDlg::GEN(FCT X, int Y, double D);
 	void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS);
@@ -192,6 +204,7 @@ public:
 	int CCompileDlg::POSITION(ALFA ID, int TX);
 	void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX);
 	void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX);
+	int CCompileDlg::findIDENT(const ALFA& ID);
 
 	ALFA    KWORD[NORW + 1] = {};
 	ALFA    MNEMONIC[9] = {};

@@ -166,6 +166,12 @@ void CCompileDlg::GetSym() {
             SYM = SLASHEQUAL;
             GetCh();
         }
+        else if (CH == '/') { // 检查单行注释
+            while (CC != LL) { // 忽略直到行尾的所有字符
+                GetCh();
+            }
+            GetSym();
+        }
         else {
             SYM = SLASH;
         }

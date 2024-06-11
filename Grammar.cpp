@@ -18,12 +18,36 @@ int CCompileDlg::SymIn(SYMBOL SYM, SYMSET S1) {
     return S1[SYM];
 }
 
+int CCompileDlg::findIDENT(const ALFA& ID) {
+    for (int i = 0; i < TXMAX; ++i) {
+        if (std::strncmp(TABLE[i].NAME, ID, 11) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// 在表中查找标识符
+int CCompileDlg::POSITION(ALFA ID, int TX) {
+    int i = TX;
+    strcpy_s(TABLE[0].NAME, sizeof(TABLE[0].NAME), ID);
+    while (strcmp(TABLE[i].NAME, ID) != 0)
+        i--;
+    return i;
+}
+
 void CCompileDlg::GEN(FCT X, int Y, int Z) {
     if (CX > CXMAX) {
         logger(_T("PROGRAM TOO LONG"), _T("error"));
         fprintf(FOUT, "PROGRAM TOO LONG\n");
         fclose(FOUT);
         throw std::out_of_range("PROGRAM TOO LONG");
+    }
+    if (startSIGN == true) {
+        s_CODE.push_back(true);
+    }
+    else {
+        s_CODE.push_back(false);
     }
     CODE[CX].F = X;  // 设置函数代码
     CODE[CX].L = Y;  // 设置层级
@@ -38,6 +62,12 @@ void CCompileDlg::GEN(FCT X, int Y, double D) {
         fclose(FOUT);
         throw std::out_of_range("PROGRAM TOO LONG");
     }
+    if (startSIGN == true) {
+        s_CODE.push_back(true);
+    }
+    else {
+        s_CODE.push_back(false);
+    }
     CODE[CX].F = X;  // 设置函数代码
     CODE[CX].L = Y;  // 设置层级
     CODE[CX].D = D; // 设置偏移地址
@@ -46,6 +76,10 @@ void CCompileDlg::GEN(FCT X, int Y, double D) {
 
 // 将对象（常量、变量或过程）插入到符号表中
 void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT INTO TABLE*/
+    if (POSITION(ID, TX) != 0) {
+        Error(34);
+        return;
+    }
     TX++;
     strcpy_s(TABLE[TX].NAME, sizeof(TABLE[TX].NAME), ID);
     TABLE[TX].KIND = K;
@@ -71,6 +105,12 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
             TABLE[TX].vp.LEVEL = LEV; 
             TABLE[TX].vp.ADR = DX; 
             DX++;
+            if (setCVAL != false) {
+                TABLE[TX].vp.CVAL = true;
+            }
+            else if (setRVAL != false) {
+                TABLE[TX].vp.RVAL = true;
+            }
             break;
         case PROCEDUR:
             TABLE[TX].vp.LEVEL = LEV;
@@ -99,34 +139,27 @@ void CCompileDlg::ConstDeclaration(int LEV, int& TX, int& DX) {
                 ENTER(CONSTANT, LEV, TX, DX); 
                 GetSym(); 
             }
+            else if (SYM == CHARSYM) {
+                ENTER(CHAR, LEV, TX, DX);
+                GetSym();
+            }
+            else if (SYM == REALSYM) {
+                ENTER(REAL, LEV, TX, DX);
+                GetSym();
+            }
             else 
                 Error(2);
         }
         else 
             Error(3);
     }
-    else 
+    else {
         Error(4);
-}
-
-void CCompileDlg::CharDeclaration(int LEV, int& TX, int& DX) {
-    if (SYM == IDENT) {
-        ENTER(CHAR, LEV, TX, DX);
-        GetSym();
     }
-    else Error(4);
-}
-
-void CCompileDlg::RealDeclaration(int LEV, int& TX, int& DX) {
-    if (SYM == IDENT) {
-        ENTER(REAL, LEV, TX, DX);
-        GetSym();
-    }
-    else Error(4);
 }
 
 void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
-    int i;
+    int i = POSITION(ID, TX); // 查找标识符
 
     // 检查当前符号是否在开始符号集合中
     TEST(FACBEGSYS, FSYS, 24);
@@ -134,7 +167,6 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
     // 如果当前符号在开始符号集合中，进行处理
     while (SymIn(SYM, FACBEGSYS)) {
         if (SYM == IDENT) {
-            i = POSITION(ID, TX);  // 查找标识符
             if (i == 0) 
                 Error(11);
             else {
@@ -146,24 +178,36 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
                         break;
                     case CHAR:  // 字符常量
                         GEN(LIT, 0, TABLE[i].CVAL);
+                        GetSym();
                         break;
                     case REAL:  // 实数常量
                         GEN(LIT, 0, TABLE[i].RVAL);
+                        GetSym();
                         break;
-                    case VARIABLE:  // 整型变量
+                    case VARIABLE:  // 变量
                         GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                         // 处理后缀操作
                         GetSym();  
                         if (SYM == INCREMENT) {
                             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
-                            GEN(LIT, 0, 1);
+                            if (TABLE[i].vp.RVAL == true) {
+                                GEN(LIT, 0, 1.0);
+                            }
+                            else {
+                                GEN(LIT, 0, 1);
+                            }
                             GEN(OPR, 0, 2);  // 加法
                             GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
                             GetSym();
                         }
                         else if (SYM == DECREMENT) {
                             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 重新装载变量值
-                            GEN(LIT, 0, 1);
+                            if (TABLE[i].vp.RVAL == true) {
+                                GEN(LIT, 0, 1.0);
+                            }
+                            else {
+                                GEN(LIT, 0, 1);
+                            }
                             GEN(OPR, 0, 3);  // 减法
                             GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 更新变量值
                             GetSym();
@@ -180,33 +224,51 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
                 Error(31);
                 NUM = 0;
             }
-            GEN(LIT, 0, NUM);  // 常量
+            if (TABLE[i].vp.RVAL == true) { // 类型转换
+                REALNUM = (double)NUM;
+                GEN(LIT, 0, REALNUM);
+            }
+            else
+                GEN(LIT, 0, NUM);  // 常量
             GetSym();
         }
-        else if (SYM == CHARSYM) {  // 字符常量
+        else if (SYM == CHARSYM) {  // 字符变量
             if (CHVAR > 127 || CHVAR < 0) {
                 Error(31);
                 CHVAR = 0;
             }
-            TABLE[TX].vp.CVAL = true;
-            GEN(LIT, 0, CHVAR);  
+            if (TABLE[i].vp.CVAL != true) { // 类型转换
+                if (TABLE[i].vp.RVAL == true) {
+                    REALNUM = (double)CHVAR;
+                    GEN(LIT, 0, REALNUM);
+                }
+                else
+                    GEN(LIT, 0, CHVAR);
+            }
+            else
+                GEN(LIT, 0, CHVAR);  
             GetSym();
         }
-        else if (SYM == REALSYM) {  // 实数常量
-            TABLE[TX].vp.RVAL = true;
-            GEN(LIT, 0, REALNUM);  
+        else if (SYM == REALSYM) {  // 实数变量
+            if (TABLE[i].vp.RVAL != true) { // 类型转换
+                NUM = (int)REALNUM;
+                GEN(LIT, 0, NUM);
+            }
+            else
+                GEN(LIT, 0, REALNUM);  
             GetSym();
         }
         else if (SYM == LPAREN) {  // 表达式
             GetSym();
             // 解析表达式
             EXPRESSION(SymSetAdd(RPAREN, FSYS), LEV, TX);
-            if (SYM == RPAREN)
+            if (SYM == RPAREN) {
                 GetSym();
-            else
+            }
+            else {
                 Error(22);
+            }
         }
-
         TEST(FSYS, FACBEGSYS, 23);
     }
 }
@@ -261,14 +323,24 @@ void CCompileDlg::EXPRESSION(SYMSET FSYS, int LEV, int& TX) {
                 // 执行自增或自减，并载入修改后的值
                 if (ADDOP == INCREMENT) {
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    GEN(LIT, 0, 1);
+                    if (TABLE[i].vp.RVAL == true) {
+                        GEN(LIT, 0, 1.0);
+                    }
+                    else {
+                        GEN(LIT, 0, 1);
+                    }
                     GEN(OPR, 0, 2);
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                 }
                 else if (ADDOP == DECREMENT) {
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                    GEN(LIT, 0, 1);
+                    if (TABLE[i].vp.RVAL == true) {
+                        GEN(LIT, 0, 1.0);
+                    }
+                    else {
+                        GEN(LIT, 0, 1);
+                    }
                     GEN(OPR, 0, 3);
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
@@ -305,15 +377,6 @@ void CCompileDlg::TEST(SYMSET S1, SYMSET S2, int N) {
     }
 }
 
-// 在表中查找标识符
-int CCompileDlg::POSITION(ALFA ID, int TX) {
-    int i = TX;
-    strcpy_s(TABLE[0].NAME, sizeof(TABLE[0].NAME), ID);
-    while (strcmp(TABLE[i].NAME, ID) != 0) 
-        i--;
-    return i;
-}
-
 // 处理条件表达式
 void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
     SYMBOL RELOP;
@@ -327,14 +390,16 @@ void CCompileDlg::CONDITION(SYMSET FSYS, int LEV, int& TX) {
         EXPRESSION(SymSetUnion(SymSetNew(EQL, NEQ, LSS, LEQ, GTR, GEQ), FSYS), LEV, TX);
         if (!SymIn(SYM, SymSetNew(EQL, NEQ, LSS, LEQ, GTR, GEQ))) Error(20);
         else {
-            RELOP = SYM; GetSym(); EXPRESSION(FSYS, LEV, TX);
+            RELOP = SYM; 
+            GetSym(); 
+            EXPRESSION(FSYS, LEV, TX);
             switch (RELOP) {
-            case EQL: GEN(OPR, 0, 8);  break;  // 等于
-            case NEQ: GEN(OPR, 0, 9);  break;  // 不等于
-            case LSS: GEN(OPR, 0, 10); break;  // 小于
-            case GEQ: GEN(OPR, 0, 11); break;  // 大于等于
-            case GTR: GEN(OPR, 0, 12); break;  // 大于
-            case LEQ: GEN(OPR, 0, 13); break;  // 小于等于
+                case EQL: GEN(OPR, 0, 8);  break;  // 等于
+                case NEQ: GEN(OPR, 0, 9);  break;  // 不等于
+                case LSS: GEN(OPR, 0, 10); break;  // 小于
+                case GEQ: GEN(OPR, 0, 11); break;  // 大于等于
+                case GTR: GEN(OPR, 0, 12); break;  // 大于
+                case LEQ: GEN(OPR, 0, 13); break;  // 小于等于
             }
         }
     }
@@ -360,13 +425,23 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                 else {
                     if (op == INCREMENT) {
                         GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                        GEN(LIT, 0, 1);
+                        if (TABLE[i].vp.RVAL == true) {
+                            GEN(LIT, 0, 1.0);
+                        }
+                        else {
+                            GEN(LIT, 0, 1);
+                        }
                         GEN(OPR, 0, 2);  // 加法
                         GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     }
                     else if (op == DECREMENT) {
                         GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                        GEN(LIT, 0, 1);
+                        if (TABLE[i].vp.RVAL == true) {
+                            GEN(LIT, 0, 1.0);
+                        }
+                        else {
+                            GEN(LIT, 0, 1);
+                        }
                         GEN(OPR, 0, 3);  // 减法
                         GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     }
@@ -400,21 +475,28 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                 }
             }
-            else if (SYM == BECOMES || SYM == PLUSEQUAL || SYM == MINUSEQUAL || SYM == TIMESEQUAL || SYM == SLASHEQUAL) {
+            else if (SYM == BECOMES) {
                 op = SYM;
                 GetSym();
                 EXPRESSION(FSYS, LEV, TX);
                 if (i != 0) {
-                    if (op != BECOMES) {
-                        // 先加载变量的旧值
-                        GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
-                        // 执行相应的运算
-                        switch (op) {
-                            case PLUSEQUAL: GEN(OPR, 0, 2); break;
-                            case MINUSEQUAL: GEN(OPR, 0, 3); break;
-                            case TIMESEQUAL: GEN(OPR, 0, 4); break;
-                            case SLASHEQUAL: GEN(OPR, 0, 5); break;
-                        }
+                    // 存储结果
+                    GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                }
+            }
+            else if (SYM == PLUSEQUAL || SYM == MINUSEQUAL || SYM == TIMESEQUAL || SYM == SLASHEQUAL) {
+                op = SYM;
+                // 先加载变量的旧值
+                GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
+                GetSym();
+                EXPRESSION(FSYS, LEV, TX);
+                if (i != 0) {
+                    // 执行相应的运算
+                    switch (op) {
+                    case PLUSEQUAL: GEN(OPR, 0, 2); break;
+                    case MINUSEQUAL: GEN(OPR, 0, 3); break;
+                    case TIMESEQUAL: GEN(OPR, 0, 4); break;
+                    case SLASHEQUAL: GEN(OPR, 0, 5); break;
                     }
                     // 存储结果
                     GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
@@ -463,6 +545,21 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             }
             GEN(OPR, 0, 15);
             break; /*WRITESYM*/
+        case WRITECSYM:
+            GetSym();
+            if (SYM == LPAREN) {
+                do {
+                    GetSym();
+                    EXPRESSION(SymSetUnion(SymSetNew(RPAREN, COMMA), FSYS), LEV, TX);
+                    GEN(OPR, 0, 16);
+                } while (SYM == COMMA);
+                if (SYM != RPAREN)
+                    Error(33);
+                else
+                    GetSym();
+            }
+            GEN(OPR, 0, 15);
+            break; /*WRITESYM*/
         case CALLSYM:
             GetSym();
             if (SYM != IDENT) 
@@ -485,28 +582,23 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             if (SYM == THENSYM)
                 GetSym();
             else
-                Error(16);  // “then” expected
+                Error(16);
 
             CX1 = CX;
             GEN(JPC, 0, 0);
-            STATEMENT(FSYS, LEV, TX);
+            STATEMENT(SymSetUnion(SymSetNew(ELSESYM), FSYS), LEV, TX);
 
-            GetSym();  // 尝试读取下一个符号
-
-            if (SYM == ELSESYM) {
-                // 处理ELSE部分
-                CODE[CX1].A = CX + 1;  // 更新JPC的跳转地址到ELSE部分的下一位置
-                CX2 = CX;  // 记录跳过“ELSE”部分的跳转地址
-                GEN(JMP, 0, 0);  // 生成无条件跳转，从THEN部分跳出
+            if (SYM == ELSESYM) {       // 处理ELSE部分
+                CODE[CX1].A = CX + 1;   // 更新JPC的跳转地址到ELSE部分的下一位置
+                CX2 = CX;               // 记录跳过“ELSE”部分的跳转地址
+                GEN(JMP, 0, 0);         // 生成无条件跳转，从THEN部分跳出
 
                 GetSym();
                 STATEMENT(FSYS, LEV, TX);
-                CODE[CX2].A = CX;  // 更新JMP的跳转地址
+                CODE[CX2].A = CX;       // 更新JMP的跳转地址
             }
             else {
-                Retreat();
                 CODE[CX1].A = CX;
-                STATEMENT(FSYS, LEV, TX);
             }
             break;
         case FORSYM:
@@ -516,47 +608,68 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             i = POSITION(ID, TX);
             if (i == 0)
                 Error(11);  // 未声明的标识符
-            if (TABLE[i].KIND != VARIABLE)
+            if (TABLE[i].KIND != VARIABLE) {
                 Error(12);  // 不是变量
+                i = 0;
+            }
             GetSym();
-            if (SYM != BECOMES)
+            if (SYM == BECOMES) {
+                GetSym();
+            }
+            else {
                 Error(13);  // 缺少赋值符号
-            GetSym();
-            EXPRESSION(SymSetUnion(FSYS, SymSetNew(STEPSYM, UNTILSYM, DOSYM)), LEV, TX);
-            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 初始值赋给变量
+            }
 
+            // 处理初始值部分
+            EXPRESSION(SymSetUnion(FSYS, SymSetNew(STEPSYM)), LEV, TX);
+            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 初始值赋给变量
             CX1 = CX;  // 记录循环开始位置
             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
 
-            if (SYM != STEPSYM)
+            // 处理步长部分
+            if (SYM == STEPSYM) {
+                GetSym();
+            }
+            else {
                 Error(24);  // 缺少STEP
-            GetSym();
-            EXPRESSION(SymSetUnion(FSYS, SymSetNew(UNTILSYM, DOSYM)), LEV, TX);
+            }
+            EXPRESSION(SymSetUnion(FSYS, SymSetNew(UNTILSYM)), LEV, TX);
             GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 1);  // 保存步长
 
-            if (SYM != UNTILSYM)
+            // 处理终止条件部分
+            if (SYM == UNTILSYM) {
+                GetSym();
+            }
+            else {
                 Error(25);  // 缺少UNTIL
-            GetSym();
+            }
             EXPRESSION(SymSetUnion(FSYS, SymSetNew(DOSYM)), LEV, TX);
             GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 保存终止条件
 
-            CX2 = CX;  // 准备跳转的地方
+            // 准备跳转的地方
+            CX2 = CX;
             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 加载终止条件
             GEN(OPR, 0, 13);  // OPR 0,13 <= 比较变量和终止条件
             CX3 = CX;
             GEN(JPC, 0, 0);  // 处理终止条件
 
-            if (SYM != DOSYM)
+            // 处理循环体部分
+            if (SYM == DOSYM) {
+                GetSym();
+            }
+            else {
                 Error(26);  // 缺少DO
-            GetSym();
+            }
             STATEMENT(FSYS, LEV, TX);
 
+            // 更新循环变量
             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
             GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 1);  // 加载步长
             GEN(OPR, 0, 2);  // OPR 0,2 + 变量 + 步长
             GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 保存变量
 
+            // 跳回循环开始
             GEN(JMP, 0, CX1);  // 跳回循环开始
             CODE[CX3].A = CX;  // 回填JPC的跳转地址
 
@@ -604,21 +717,27 @@ void CCompileDlg::ListCode(int CX0) {
     if (nCheck == 0) {
         return;
     }
-
-    logger(_T("--- START OF BLOCK ---"), _T("debug"));
-
     for (int i = CX0; i < CX; i++) {
         CString s;
         s.Format(_T("%3d"), i);
         CString mnemonic(MNEMONIC[CODE[i].F]);
         CString line;
-        line.Format(_T("%s %s %4d %4d"), s.GetString(), mnemonic.GetString(), CODE[i].L, CODE[i].A);
-        logger(line, _T("info"));
+        if (CODE[i].D != 0.0) {
+            line.Format(_T("%s %s %4d %4.2f"), s.GetString(), mnemonic.GetString(), CODE[i].L, CODE[i].D);
+        }
+        else 
+            line.Format(_T("%s %s %4d %4d"), s.GetString(), mnemonic.GetString(), CODE[i].L, CODE[i].A);
+
+        // 检查是否为代码段的开始
+        if (s_CODE.at(i)) {
+            logger(line, _T("debug"));
+        }
+        else {
+            logger(line, _T("info"));
+        }
 
         fprintf(FOUT, "%3d%5s%4d%4d\n", i, MNEMONIC[CODE[i].F], CODE[i].L, CODE[i].A);
     }
-
-    logger(_T("--- END OF BLOCK ---"), _T("debug"));
 }
 
 
@@ -626,23 +745,40 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
     int DX = 3;    // 数据分配索引
     int TX0 = TX;  // 初始表索引
     int CX0 = CX;  // 初始代码索引
-    TABLE[TX].vp.ADR = CX; GEN(JMP, 0, 0);
+    TABLE[TX].vp.ADR = CX; 
+    GEN(JMP, 0, 0);
     if (LEV > LEVMAX) 
         Error(32);
     do {
         if (SYM == CONSTSYM) { // 处理常量声明
             GetSym();
-            do {
-                ConstDeclaration(LEV, TX, DX);
-                while (SYM == COMMA) {
-                    GetSym();  
+            if (SYM == CHARSYM || SYM == REALSYM) {
+                GetSym();
+                do {
                     ConstDeclaration(LEV, TX, DX);
-                }
-                if (SYM == SEMICOLON) 
-                    GetSym();
-                else 
-                    Error(5);
-            } while (SYM == IDENT);
+                    while (SYM == COMMA) {
+                        GetSym();
+                        ConstDeclaration(LEV, TX, DX);
+                    }
+                    if (SYM == SEMICOLON)
+                        GetSym();
+                    else
+                        Error(5);
+                } while (SYM == IDENT);
+            }
+            else {
+                do {
+                    ConstDeclaration(LEV, TX, DX);
+                    while (SYM == COMMA) {
+                        GetSym();
+                        ConstDeclaration(LEV, TX, DX);
+                    }
+                    if (SYM == SEMICOLON)
+                        GetSym();
+                    else
+                        Error(5);
+                } while (SYM == IDENT);
+            }
         }
         if (SYM == VARSYM) { // 处理变量声明
             GetSym();
@@ -661,6 +797,7 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
         if (SYM == CHARSYM) { // 处理字符声明
             GetSym();
             do {
+                setCVAL = true;
                 VarDeclaration(LEV, TX, DX);
                 while (SYM == COMMA) {
                     GetSym();
@@ -671,10 +808,12 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                 else
                     Error(5);
             } while (SYM == IDENT);
+            setCVAL = false;
         }
         if (SYM == REALSYM) { // 处理实数声明
             GetSym();
             do {
+                setRVAL = true;
                 VarDeclaration(LEV, TX, DX);
                 while (SYM == COMMA) {
                     GetSym();
@@ -685,6 +824,7 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                 else
                     Error(5);
             } while (SYM == IDENT);
+            setRVAL = false;
         }
         while (SYM == PROCSYM) { // 处理过程声明
             GetSym();
