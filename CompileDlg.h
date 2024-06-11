@@ -1,4 +1,4 @@
-﻿
+
 // CompileDlg.h: 头文件
 //
 
