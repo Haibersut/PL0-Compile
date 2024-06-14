@@ -76,7 +76,7 @@ public:
 
 	int CCompileDlg::BASE(int L, int B, Data S[]);
 
-	std::vector<bool> s_CODE;
+	std::vector<int> s_CODE;
 	bool startSIGN = false;
 
 	int ERR = 0; /*ERROR FLAG*/
@@ -164,6 +164,7 @@ public:
 
 	typedef char ALFA[11];
 	typedef std::vector<int> SYMSET;  // SET OF SYMBOL;
+
 	typedef enum {
 		CONSTANT,  // 常量
 		VARIABLE,  // 变量
@@ -175,7 +176,6 @@ public:
 	struct {
 		ALFA NAME;  // 名称
 		OBJECTS KIND;  // 对象种类
-		union {
 			int VAL;   // 常量的值
 			char CVAL; // 字符常量的值
 			double RVAL; // 实数常量的值
@@ -186,12 +186,10 @@ public:
 				bool CVAL;  // 是否为字符变量
 				bool RVAL;  // 是否为实数变量
 			} vp;  // 变量或过程的信息
-		};
 	} TABLE[TXMAX];
 
 	bool setCVAL = false;
 	bool setRVAL = false;
-
 	void CCompileDlg::GEN(FCT X, int Y, int Z);
 	void CCompileDlg::GEN(FCT X, int Y, double D);
 	void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS);
@@ -204,7 +202,6 @@ public:
 	int CCompileDlg::POSITION(ALFA ID, int TX);
 	void CCompileDlg::TERM(SYMSET FSYS, int LEV, int& TX);
 	void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX);
-	int CCompileDlg::findIDENT(const ALFA& ID);
 
 	ALFA    KWORD[NORW + 1] = {};
 	ALFA    MNEMONIC[9] = {};

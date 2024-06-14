@@ -56,7 +56,6 @@ void CCompileDlg::GetSym() {
     double realPart = 0.0;
     double fractionPart = 0.0;
     double fractionDivisor = 1.0;
-    bool isFraction = false;
 
     while (CH != EOF && CH <= ' ') {
         GetCh(); // Ìø¹ý¿Õ°××Ö·û
@@ -97,7 +96,6 @@ void CCompileDlg::GetSym() {
             GetCh();
         } while (isdigit(CH));
         if (CH == '.') {
-            isFraction = true;
             GetCh();
             while (isdigit(CH)) {
                 fractionPart = 10 * fractionPart + (CH - '0');

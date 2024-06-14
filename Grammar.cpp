@@ -18,15 +18,6 @@ int CCompileDlg::SymIn(SYMBOL SYM, SYMSET S1) {
     return S1[SYM];
 }
 
-int CCompileDlg::findIDENT(const ALFA& ID) {
-    for (int i = 0; i < TXMAX; ++i) {
-        if (std::strncmp(TABLE[i].NAME, ID, 11) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 // 在表中查找标识符
 int CCompileDlg::POSITION(ALFA ID, int TX) {
     int i = TX;
@@ -43,14 +34,8 @@ void CCompileDlg::GEN(FCT X, int Y, int Z) {
         fclose(FOUT);
         throw std::out_of_range("PROGRAM TOO LONG");
     }
-    if (startSIGN == true) {
-        s_CODE.push_back(true);
-    }
-    else {
-        s_CODE.push_back(false);
-    }
     CODE[CX].F = X;  // 设置函数代码
-    CODE[CX].L = Y;  // 设置层级
+    CODE[CX].L = abs(Y);  // 设置层级
     CODE[CX].A = Z; // 设置偏移地址
     CX++;  // 代码索引增加
 }
@@ -62,12 +47,6 @@ void CCompileDlg::GEN(FCT X, int Y, double D) {
         fclose(FOUT);
         throw std::out_of_range("PROGRAM TOO LONG");
     }
-    if (startSIGN == true) {
-        s_CODE.push_back(true);
-    }
-    else {
-        s_CODE.push_back(false);
-    }
     CODE[CX].F = X;  // 设置函数代码
     CODE[CX].L = Y;  // 设置层级
     CODE[CX].D = D; // 设置偏移地址
@@ -76,11 +55,12 @@ void CCompileDlg::GEN(FCT X, int Y, double D) {
 
 // 将对象（常量、变量或过程）插入到符号表中
 void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT INTO TABLE*/
-    if (POSITION(ID, TX) != 0) {
-        Error(34);
-        return;
-    }
     TX++;
+    /*s_CODE.push_back(TX);
+    auto max_int = std::max_element(s_CODE.begin(), s_CODE.end());
+    if (TX < *max_int) {
+        TX = *max_int;
+    }*/
     strcpy_s(TABLE[TX].NAME, sizeof(TABLE[TX].NAME), ID);
     TABLE[TX].KIND = K;
     switch (K) {
@@ -89,10 +69,15 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
                 Error(31); 
                 NUM = 0; 
             }
-            TABLE[TX].VAL = NUM;
+            if (setRVAL == true) {
+                REALNUM = (double)NUM;
+                TABLE[TX].RVAL = REALNUM;
+            }
+            else
+                TABLE[TX].VAL = NUM;
             break;
         case CHAR:
-            if (CHVAR > 127 || CHVAR < 0) {
+            if (CHVAR > 255 || CHVAR < 0) {
                 Error(31);
                 CHVAR = 0;
             }
@@ -105,10 +90,10 @@ void CCompileDlg::ENTER(OBJECTS K, int LEV, int& TX, int& DX) { /*ENTER OBJECT I
             TABLE[TX].vp.LEVEL = LEV; 
             TABLE[TX].vp.ADR = DX; 
             DX++;
-            if (setCVAL != false) {
+            if (setCVAL == true) {
                 TABLE[TX].vp.CVAL = true;
             }
-            else if (setRVAL != false) {
+            else if (setRVAL == true) {
                 TABLE[TX].vp.RVAL = true;
             }
             break;
@@ -250,7 +235,7 @@ void CCompileDlg::FACTOR(SYMSET FSYS, int LEV, int& TX) {
             GetSym();
         }
         else if (SYM == REALSYM) {  // 实数变量
-            if (TABLE[i].vp.RVAL != true) { // 类型转换
+            if (TABLE[i].vp.RVAL == false) { // 类型转换
                 NUM = (int)REALNUM;
                 GEN(LIT, 0, NUM);
             }
@@ -519,7 +504,7 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
                     if (i == 0) 
                         Error(35);
                     else {
-                        GEN(OPR, 0, 16);
+                        GEN(OPR, 0, 18);
                         GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);
                     }
                     GetSym();
@@ -584,13 +569,13 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             else
                 Error(16);
 
-            CX1 = CX;
+            CX1 = CX;                   // 记录当前代码地址
             GEN(JPC, 0, 0);
             STATEMENT(SymSetUnion(SymSetNew(ELSESYM), FSYS), LEV, TX);
 
-            if (SYM == ELSESYM) {       // 处理ELSE部分
+            if (SYM == ELSESYM) {       // 处理 ELSE 之后的语句
                 CODE[CX1].A = CX + 1;   // 更新JPC的跳转地址到ELSE部分的下一位置
-                CX2 = CX;               // 记录跳过“ELSE”部分的跳转地址
+                CX2 = CX;               // 记录当前代码地址
                 GEN(JMP, 0, 0);         // 生成无条件跳转，从THEN部分跳出
 
                 GetSym();
@@ -643,16 +628,10 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
             else {
                 Error(25);  // 缺少UNTIL
             }
-            EXPRESSION(SymSetUnion(FSYS, SymSetNew(DOSYM)), LEV, TX);
-            GEN(STO, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 保存终止条件
-
-            // 准备跳转的地方
+            CONDITION(SymSetUnion(FSYS, SymSetNew(DOSYM)), LEV, TX);  // 处理终止条件
+            GEN(OPR, 0, 17);  // 取反条件
             CX2 = CX;
-            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR);  // 加载变量
-            GEN(LOD, LEV - TABLE[i].vp.LEVEL, TABLE[i].vp.ADR + 2);  // 加载终止条件
-            GEN(OPR, 0, 13);  // OPR 0,13 <= 比较变量和终止条件
-            CX3 = CX;
-            GEN(JPC, 0, 0);  // 处理终止条件
+            GEN(JPC, 0, 0);
 
             // 处理循环体部分
             if (SYM == DOSYM) {
@@ -671,7 +650,7 @@ void CCompileDlg::STATEMENT(SYMSET FSYS, int LEV, int& TX) {   /*STATEMENT*/
 
             // 跳回循环开始
             GEN(JMP, 0, CX1);  // 跳回循环开始
-            CODE[CX3].A = CX;  // 回填JPC的跳转地址
+            CODE[CX2].A = CX;  // 回填JPC的跳转地址
 
             break;
         case BEGINSYM:
@@ -752,9 +731,10 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
     do {
         if (SYM == CONSTSYM) { // 处理常量声明
             GetSym();
-            if (SYM == CHARSYM || SYM == REALSYM) {
+            if (SYM == CHARSYM) {
                 GetSym();
                 do {
+                    setCVAL = true;
                     ConstDeclaration(LEV, TX, DX);
                     while (SYM == COMMA) {
                         GetSym();
@@ -765,6 +745,23 @@ void CCompileDlg::Block(int LEV, int TX, SYMSET FSYS) {
                     else
                         Error(5);
                 } while (SYM == IDENT);
+                setCVAL = false;
+            }
+            else if (SYM == REALSYM) {
+                GetSym();
+                do {
+                    setRVAL = true;
+                    ConstDeclaration(LEV, TX, DX);
+                    while (SYM == COMMA) {
+                        GetSym();
+                        ConstDeclaration(LEV, TX, DX);
+                    }
+                    if (SYM == SEMICOLON)
+                        GetSym();
+                    else
+                        Error(5);
+                } while (SYM == IDENT);
+                setRVAL = false;
             }
             else {
                 do {

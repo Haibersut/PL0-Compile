@@ -98,7 +98,7 @@ void CCompileDlg::Interpret() {
 							S[T].i = S[T].i / S[T + 1].i;
 						}
 						break;
-					case 6: 
+					case 6: // MOD
 						if (S[T].d != 0.0) { // 浮点数处理
 							Error(33);
 						}
@@ -106,61 +106,61 @@ void CCompileDlg::Interpret() {
 							S[T].i = S[T].i % S[T + 1].i;
 						}
 						break;
-					case 8: 
-						T--; 
+					case 8: // EQL
+						T--;
 						if (S[T].d != 0.0) { // 浮点数处理
-							// 判断浮点数相等
+							S[T].i = fabs(S[T].d - S[T + 1].d) < 1e-9;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i == S[T + 1].i;
 						}
 						break;
-					case 9: 
-						T--; 
-						if (I.D != 0.0) { // 浮点数处理
-							// 判断浮点数不相等
+					case 9: // NEQ
+						T--;
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].i = fabs(S[T].d - S[T + 1].d) >= 1e-9;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i != S[T + 1].i;
 						}
 						break;
-					case 10: 
-						T--; 
-						if (I.D != 0) { // 浮点数处理
-							// 判断浮点数小于
+					case 10: // LSS
+						T--;
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].i = S[T].d < S[T + 1].d;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i < S[T + 1].i;
 						}
 						break;
-					case 11: 
-						T--; 
-						if (I.D != 0) { // 浮点数处理
-							// 判断浮点数大于等于
+					case 11: // GEQ
+						T--;
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].i = S[T].d >= S[T + 1].d;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i >= S[T + 1].i;
 						}
 						break;
-					case 12: 
-						T--; 
-						if (I.D != 0) { // 浮点数处理
-							// 判断浮点数大于
+					case 12: // GTR
+						T--;
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].i = S[T].d > S[T + 1].d;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i > S[T + 1].i;
 						}
 						break;
-					case 13: 
-						T--; 
-						if (I.D != 0) { // 浮点数处理
-							// 判断浮点数小于等于
+					case 13: // LEQ
+						T--;
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].i = S[T].d <= S[T + 1].d;
 						}
 						else { // 整数处理
 							S[T].i = S[T].i <= S[T + 1].i;
 						}
 						break;
-					case 14: 
+					case 14: // WRITE
 						{
 							CString str;
 							if (S[T].d != 0.0) { // 浮点数处理
@@ -178,7 +178,7 @@ void CCompileDlg::Interpret() {
 							//logger(_T(""), _T("info"));
 						}
 						break;
-					case 16:
+					case 16: // WRITEC
 						{
 							CString str;
 							if (S[T].d != 0.0) { // 浮点数处理
@@ -191,7 +191,15 @@ void CCompileDlg::Interpret() {
 							T--;
 							break;
 						}
-					case 17: 
+					case 17: /*NOT*/
+						if (S[T].d != 0.0) { // 浮点数处理
+							S[T].d = !S[T].d;
+						}
+						else { // 整数处理
+							S[T].i = !S[T].i;
+						}
+						break;
+					case 18: // READ
 						T++;
 						CInputDialog inputDlg;
 						if (inputDlg.DoModal() == IDOK)
